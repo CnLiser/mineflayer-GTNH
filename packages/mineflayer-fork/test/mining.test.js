@@ -1,6 +1,6 @@
 const { test } = require('node:test')
 const assert = require('node:assert')
-const { resolveBlock, blockIdsFor, collectDrops } = require('../lib/gtnh/mining')
+const { resolveBlock, blockIdsFor, collectDrops, mineBlock } = require('../lib/gtnh/mining')
 
 const registry = {
   blocks: { 16: { id: 16, name: 'coal_ore' } },
@@ -36,4 +36,31 @@ test('collectDrops 会朝掉落物走过去，捡完返回', async () => {
   const picked = await collectDrops(bot, { collectMs: 1200, collectRadius: 5 })
   assert.ok(visited.length >= 1)
   assert.ok(picked >= 1)
+})
+
+test('挖不动（服务端不退 blockUpdate）时 mineBlock 返回 false，不会挂住', async () => {
+  const block = { name: 'minecraft:coal_ore', position: { x: 0, y: 0, z: 0, distanceTo: () => 1, offset: () => ({ distanceTo: () => 1 }) }, boundingBox: 'block' }
+  const bot = {
+    entity: { position: { distanceTo: () => 1 } },
+    blockAt: () => block,
+    dig: () => new Promise(() => {}),   // 永不返回
+    canDigBlock: () => true
+  }
+  const started = Date.now()
+  const ok = await mineBlock(bot, block, { digTimeoutMs: 300 })
+  assert.equal(ok, false)
+  assert.ok(Date.now() - started < 2000)
+})
+
+test('走不过去但还在 5 格内，仍然尝试挖', async () => {
+  const block = { name: 'minecraft:coal_ore', position: { x: 4, y: 0, z: 0, offset: () => ({ distanceTo: () => 4 }) }, boundingBox: 'block' }
+  let dug = false
+  const bot = {
+    entity: { position: { distanceTo: () => 4 } },
+    blockAt: () => block,
+    dig: async () => { dug = true },
+    goto: async () => false
+  }
+  assert.equal(await mineBlock(bot, block, { digTimeoutMs: 500 }), true)
+  assert.equal(dug, true)
 })
