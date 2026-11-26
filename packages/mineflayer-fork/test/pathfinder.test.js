@@ -87,3 +87,28 @@ test('digAhead 碰到基岩就不挖', async () => {
   assert.equal(ok, false)
   assert.equal(bot.dug.length, 0)
 })
+
+test('dig: 两格高的墙能被规划成挖穿，不带 dig 就是没路', () => {
+  const solidAt = (x, y, z) => y === 0 || (z === 2 && (y === 1 || y === 2))
+  const start = { x: 0, y: 1, z: 0 }; const goal = { x: 0, y: 1, z: 4 }
+  assert.equal(findPath({ solidAt }, start, goal), null)
+  const path = findPath({ solidAt }, start, goal, { dig: true })
+  assert.ok(path)
+  assert.ok(path.some((p) => p.z === 2))
+})
+
+test('dig: 挖不动的方块（基岩）不算路', () => {
+  const solidAt = (x, y, z) => y === 0 || (z === 2 && (y === 1 || y === 2))
+  const diggable = (x, y, z) => !(z === 2)
+  assert.equal(findPath({ solidAt }, { x: 0, y: 1, z: 0 }, { x: 0, y: 1, z: 4 }, { dig: true, diggable }), null)
+})
+
+test('bridge: 跨过 6 格深的沟要搭桥，否则无路', () => {
+  // y=0 是地面，z=2 处挖空到 y=-6 以下
+  const solidAt = (x, y, z) => (z === 2 ? y <= -6 : y === 0)
+  const start = { x: 0, y: 1, z: 0 }; const goal = { x: 0, y: 1, z: 4 }
+  assert.equal(findPath({ solidAt }, start, goal), null)
+  const path = findPath({ solidAt }, start, goal, { bridge: true })
+  assert.ok(path)
+  assert.ok(path.some((p) => p.z === 2 && p.y === 1))
+})

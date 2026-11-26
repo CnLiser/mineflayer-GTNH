@@ -28,7 +28,10 @@ function fallTo (solidAt, x, y, z) {
 }
 
 function findPath (world, start, goal, opts = {}) {
-  const solidAt = world.solidAt
+  const solidAt = typeof world === 'function' ? world : world.solidAt
+  const diggable = opts.dig ? (opts.diggable || (() => true)) : null
+  const digCost = opts.digCost || 3
+  const bridgeCost = opts.bridge ? (opts.bridgeCost || 6) : 0
   const sx = Math.floor(start.x); const sy = Math.round(start.y); const sz = Math.floor(start.z)
   const gx = Math.floor(goal.x); const gy = Math.round(goal.y); const gz = Math.floor(goal.z)
   const maxNodes = opts.maxNodes || MAX_NODES
@@ -71,6 +74,20 @@ function findPath (world, start, goal, opts = {}) {
       // 下落（走到边缘掉下去）
       const fy = fallTo(solidAt, nx, cur.y - 1, nz)
       if (fy !== null && fy < cur.y) neighbors.push([nx, fy, nz, 1 + (cur.y - fy) * 0.3])
+      // 挖穿：挡住身体的两格都能挖，脚下还站得住。代价按要挖的格数算，让 A* 自己权衡绕路
+      if (diggable && (solidAt(nx, cur.y, nz) || solidAt(nx, cur.y + 1, nz)) && solidAt(nx, cur.y - 1, nz)) {
+        const need = []
+        if (solidAt(nx, cur.y, nz)) need.push([nx, cur.y, nz])
+        if (solidAt(nx, cur.y + 1, nz)) need.push([nx, cur.y + 1, nz])
+        if (need.every(([x, y, z]) => diggable(x, y, z))) {
+          neighbors.push([nx, cur.y, nz, 1 + digCost * need.length])
+        }
+      }
+      // 搭桥：脚下悬空（下面多深都行，垫一块就站住了），代价高，由调用方保证手里有方块
+      if (bridgeCost > 0 && !solidAt(nx, cur.y - 1, nz) &&
+          !solidAt(nx, cur.y, nz) && !solidAt(nx, cur.y + 1, nz)) {
+        neighbors.push([nx, cur.y, nz, 1 + bridgeCost])
+      }
 
       for (const [x, y, z, cost] of neighbors) {
         const k = key(x, y, z)
@@ -100,6 +117,8 @@ async function followPath (bot, path, opts = {}) {
 
   for (let i = 1; i < path.length; i++) {
     const target = path[i]
+    // 走到这个节点之前，先把要挖的挖掉、要垫的垫上
+    if ((opts.dig || opts.bridge) && !(await prepareNode(bot, target, opts))) return false
     const goal = new Vec3(target.x + 0.5, target.y, target.z + 0.5)
     while (Date.now() - started < timeoutMs) {
       const p = bot.entity.position
@@ -125,6 +144,44 @@ async function followPath (bot, path, opts = {}) {
   }
   bot.setControlState('forward', false)
   bot.setControlState('jump', false)
+  return true
+}
+
+// 进入某个节点前清场：挖掉挡路的两格，或者脚下垫一块
+async function prepareNode (bot, node, opts = {}) {
+  const { Vec3 } = require('vec3')
+  if (opts.dig) {
+    for (const y of [node.y, node.y + 1]) {
+      const b = bot.blockAt(new Vec3(node.x, y, node.z))
+      if (!b || !b.boundingBox || b.boundingBox === 'empty') continue
+      if (/bedrock|barrier|lava|water/i.test(b.name)) return false
+      try { await bot.dig(b) } catch (e) { return false }
+      await new Promise((r) => setTimeout(r, 120))
+    }
+  }
+  if (opts.bridge) {
+    const below = bot.blockAt(new Vec3(node.x, node.y - 1, node.z))
+    if (!below || !below.boundingBox || below.boundingBox === 'empty') {
+      if (!bot.heldItem) return false
+      // 在四个水平邻居和下层里找一块实心的当参照物
+      const cand = [
+        [node.x, node.y - 2, node.z, 0, 1, 0],
+        [node.x, node.y - 1, node.z - 1, 0, 0, 1],
+        [node.x, node.y - 1, node.z + 1, 0, 0, -1],
+        [node.x - 1, node.y - 1, node.z, 1, 0, 0],
+        [node.x + 1, node.y - 1, node.z, -1, 0, 0]
+      ]
+      let placed = false
+      for (const [rx, ry, rz, fx, fy, fz] of cand) {
+        const ref = bot.blockAt(new Vec3(rx, ry, rz))
+        if (!ref || !ref.boundingBox || ref.boundingBox === 'empty') continue
+        try { await bot.placeBlock(ref, new Vec3(fx, fy, fz)); placed = true } catch (e) { placed = false }
+        if (placed) break
+      }
+      if (!placed) return false
+      await new Promise((r) => setTimeout(r, 150))
+    }
+  }
   return true
 }
 
@@ -163,7 +220,16 @@ function attachPathfinder (bot) {
     if (!b) return true
     return blockShapes(b).length > 0
   }
-  bot.findPathTo = (goal, opts) => findPath({ solidAt: bot.solidAt }, bot.entity.position, goal, opts)
+  // 能挖的方块：有碰撞箱、不是基岩/水/岩浆
+  bot.diggableAt = (x, y, z) => {
+    const b = bot.blockAt(new Vec3(x, y, z))
+    if (!b || !b.boundingBox || b.boundingBox === 'empty') return false
+    return !/bedrock|barrier|water|lava|flowing/i.test(b.name)
+  }
+  bot.findPathTo = (goal, opts = {}) => {
+    const extra = opts.dig ? { diggable: bot.diggableAt } : {}
+    return findPath({ solidAt: bot.solidAt }, bot.entity.position, goal, { ...opts, ...extra })
+  }
   // dig: true 时卡住或完全没路，会让正前方的方块挪开再重规划（最多 retries 次）
   bot.goto = async (goal, opts = {}) => {
     const retries = opts.dig ? (opts.retries ?? 2) : 0
@@ -180,4 +246,4 @@ function attachPathfinder (bot) {
   }
 }
 
-module.exports = { findPath, followPath, digAhead, canStand, fallTo, attachPathfinder }
+module.exports = { findPath, followPath, digAhead, prepareNode, canStand, fallTo, attachPathfinder }
