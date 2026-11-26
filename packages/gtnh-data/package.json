@@ -1,0 +1,14 @@
+{
+  "name": "gtnh-data",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GTNH registry overlay for mineflayer (1.7.10 + Forge)",
+  "main": "index.js",
+  "scripts": {
+    "scan": "node tools/scan-modpack.js",
+    "test": "node --test test/*.test.js",
+    "build-recipes": "node tools/build-recipes.js",
+    "build-mod-recipes": "node tools/build-mod-recipes.js",
+    "build-tconstruct": "node tools/build-tconstruct.js"
+  }
+}

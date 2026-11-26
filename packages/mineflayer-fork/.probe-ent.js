@@ -1,0 +1,18 @@
+const { createBot } = require('.')
+const { loadServerMods } = require('mineflayer-gtnh/src/index')
+const { rcon } = require('protocol-fml/tools/rcon')
+const bot = createBot({ host: '127.0.0.1', port: 54615, username: 'entProbe', mods: loadServerMods(), hideErrors: true })
+const seen = {}
+bot._client.on('packet', (data, meta) => { seen[meta.name] = (seen[meta.name] || 0) + 1 })
+bot.on('error', (e) => console.log('ERR', e.message.split('\n')[0]))
+bot.once('spawn', async () => {
+  console.log('spawn', bot.entity.position.toString())
+  await rcon(['op entProbe', 'gamemode 1 entProbe', 'tp entProbe 20.5 76 20.5'], { host: '127.0.0.1' })
+  await new Promise(r => setTimeout(r, 2000))
+  await rcon([`summon Chicken ${bot.entity.position.x + 2} 76 ${bot.entity.position.z}`], { host: '127.0.0.1' })
+  bot.on('entitySpawn', (e) => console.log('entitySpawn', e.name, e.id, e.position && e.position.toString()))
+  await new Promise(r => setTimeout(r, 4000))
+  console.log('entities', Object.keys(bot.entities).length, Object.values(bot.entities).map(e => e.name).join(','))
+  console.log('spawn_entity_living', seen.spawn_entity_living, 'named_entity_spawn', seen.named_entity_spawn, 'entity_metadata', seen.entity_metadata)
+  process.exit(0)
+})

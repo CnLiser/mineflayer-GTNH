@@ -1,0 +1,19 @@
+{
+  "name": "mineflayer-gtnh-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "mineflayer for GregTech: New Horizons (MC 1.7.10 + Forge)",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "scan": "node packages/gtnh-data/tools/scan-modpack.js",
+    "test": "npm test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "adm-zip": "^0.5.16"
+  }
+}

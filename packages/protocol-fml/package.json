@@ -1,0 +1,19 @@
+{
+  "name": "protocol-fml",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Forge Mod Loader (FML) client handshake for Minecraft 1.7.10, on top of minecraft-protocol",
+  "main": "src/index.js",
+  "scripts": {
+    "ping": "node tools/ping.js",
+    "test": "node --test test/*.test.js",
+    "world-smoke": "node tools/world-smoke.js",
+    "dump-registry": "node tools/dump-registry.js"
+  },
+  "dependencies": {
+    "minecraft-data": "^3.119.0",
+    "minecraft-protocol": "^1.68.0",
+    "prismarine-chunk-1.7": "*",
+    "gtnh-data": "*"
+  }
+}

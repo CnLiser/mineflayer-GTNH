@@ -1,0 +1,11 @@
+const { createBot } = require('.')
+const { loadServerMods } = require('mineflayer-gtnh/src/index')
+const { rcon } = require('protocol-fml/tools/rcon')
+const bot = createBot({ host: '127.0.0.1', port: 54621, username: 'entProbe4', mods: loadServerMods(), hideErrors: true })
+bot.on('error', () => {})
+bot._client.on('spawn_entity_living', (p) => console.log('LIVE', 'id=' + p.entityId, 'type=' + p.type, 'x=' + p.x, 'y=' + p.y, 'z=' + p.z))
+bot.once('spawn', async () => {
+  await rcon(['op entProbe4', 'gamemode 1 entProbe4'], { host: '127.0.0.1' })
+  await new Promise(r => setTimeout(r, 6000))
+  process.exit(0)
+})

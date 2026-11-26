@@ -1,0 +1,23 @@
+# deps
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# 本地实测产物（体积大、可重新生成）
+/data/
+/.probe/
+packages/gtnh-data/data/raw/
+packages/protocol-fml/data/raw/*.jsonl
+*.log
+*.err
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 临时
+tmp/
+*.tmp

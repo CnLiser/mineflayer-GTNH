@@ -1,0 +1,15 @@
+{
+  "host": "frp-shy.com",
+  "port": 54615,
+  "capturedAt": "2026-11-23T00:39:18.867Z",
+  "joined": false,
+  "frames": 2,
+  "byLength": {
+    "30": 1,
+    "172": 1
+  },
+  "byFirstByte": {
+    "0": 1,
+    "1": 1
+  }
+}

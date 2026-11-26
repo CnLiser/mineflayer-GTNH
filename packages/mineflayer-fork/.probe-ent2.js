@@ -1,0 +1,17 @@
+const { createBot } = require('.')
+const { loadServerMods } = require('mineflayer-gtnh/src/index')
+const { rcon } = require('protocol-fml/tools/rcon')
+const bot = createBot({ host: '127.0.0.1', port: 54615, username: 'entProbe2', mods: loadServerMods(), hideErrors: true })
+bot.on('error', (e) => console.log('BOTERR', (e.stack || e.message).split('\n').slice(0, 4).join(' | ')))
+bot._client.on('spawn_entity_living', (p) => console.log('RAW spawn_living', p.type, Object.keys(p).join(',')))
+let n = 0
+bot.on('entitySpawn', (e) => { if (n++ < 6) console.log('entitySpawn', JSON.stringify({ name: e.name, type: e.type, id: e.id })) })
+bot.once('spawn', async () => {
+  await rcon(['op entProbe2', 'gamemode 1 entProbe2', 'tp entProbe2 20.5 76 20.5'], { host: '127.0.0.1' })
+  await new Promise(r => setTimeout(r, 2500))
+  await rcon([`summon Chicken 22.5 76 20.5`, `summon Zombie 23.5 76 20.5`], { host: '127.0.0.1' })
+  await new Promise(r => setTimeout(r, 4000))
+  const list = Object.values(bot.entities).filter(e => e.type === 'mob' || e.type === 'other')
+  console.log('mobs seen', list.length, list.map(e => `${e.name}/${e.id}`).slice(0, 8).join(' '))
+  process.exit(0)
+})

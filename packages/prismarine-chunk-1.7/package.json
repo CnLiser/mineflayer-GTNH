@@ -1,0 +1,17 @@
+{
+  "name": "prismarine-chunk-1.7",
+  "version": "0.1.0",
+  "description": "1.7.10 (GTNH / ChunkAPI + EndlessIDs) column storage for mineflayer-gtnh",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": [
+    "minecraft",
+    "chunk",
+    "1.7.10",
+    "gtnh"
+  ],
+  "license": "MIT"
+}

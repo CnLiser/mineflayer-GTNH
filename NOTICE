@@ -1,0 +1,32 @@
+# NOTICE
+
+mineflayer-GTNH 是以下 MIT 项目的衍生作品（vendored fork / 重实现），保留其版权声明：
+
+## 直接包含源代码
+
+- **mineflayer** — `packages/mineflayer-fork/lib/**`
+  https://github.com/PrismarineJS/mineflayer
+  Copyright (c) 2015 Andrew Kelley and mineflayer contributors
+  License: MIT
+  说明：`packages/mineflayer-fork` 是 mineflayer 4.39.0 的完整拷贝，补丁位置全部带 `GTNH-PATCH` 注释。
+
+## 协议层参考与依赖
+
+- **node-minecraft-protocol** — 依赖（npm `minecraft-protocol`），并据其 `customPackets` 机制打 1.7.10 线格式补丁
+  https://github.com/PrismarineJS/node-minecraft-protocol
+  License: MIT
+- **minecraft-data** — 依赖（方块/物品/实体/协议定义）
+  https://github.com/PrismarineJS/minecraft-data
+  License: MIT
+- **prismarine-chunk / prismarine-block / prismarine-item / prismarine-windows / prismarine-registry / prismarine-nbt** — 依赖
+  License: MIT
+
+## 运行期数据来源
+
+- 数据由玩家自有的 **GT: New Horizons 2.9.0** 整合包与本地服务端导出（注册表、FML mod 列表、矿辞、配方、TConstruct 静态表）。
+  本仓库不包含任何 Minecraft 原版资源文件（材质、音效、语言文件以外的游戏内容）。
+- GTNH 及其内置 mod 各自遵循其原许可证；本仓库只保存通过公开 API / 反射从运行中的服务端读出的结构化数据（id、名称、配方参数）。
+
+## 免责
+
+本项目与 Mojang、Microsoft、GT: New Horizons 团队均无隶属关系，仅供学习与自动化研究使用。
