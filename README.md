@@ -2,6 +2,7 @@
 
 **A mineflayer fork that actually works on GT: New Horizons (Minecraft 1.7.10 + Forge).**
 
+[![test](https://github.com/CnLiser/mineflayer-GTNH/actions/workflows/test.yml/badge.svg)](https://github.com/CnLiser/mineflayer-GTNH/actions/workflows/test.yml)
 [![tests](https://img.shields.io/badge/tests-188%20passing-brightgreen)](#测试)
 [![node](https://img.shields.io/badge/node-%E2%89%A522-informational)](https://nodejs.org)
 [![MC](https://img.shields.io/badge/minecraft-1.7.10-blue)](#)
