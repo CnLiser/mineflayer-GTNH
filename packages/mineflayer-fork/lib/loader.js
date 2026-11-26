@@ -70,6 +70,8 @@ module.exports = {
   loadServerMods,
   formatMessage,
   messageToJSON,
+  // GTNH-PATCH: 断线重连薄封装（断线后重建整个 bot，指数退避）
+  connect: require('./gtnh/reconnect').connect,
   Location: require('./location'),
   Painting: require('./painting'),
   ScoreBoard: require('./scoreboard'),

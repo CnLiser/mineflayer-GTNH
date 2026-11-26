@@ -27,9 +27,28 @@ name/version（本地有 `local-server-modlist.json` 优先）。
 | `formatMessage(input, lang?)` | 把 chat 组件渲染成字符串（`translate` + `with` 会用 lang 表） |
 | `messageToJSON(msg)` | `ChatMessage`/字符串/数组 → 原始组件 JSON（存原文用它，别 `JSON.stringify` 别的） |
 | `supportFeature(feature, version?)` | 1.7.10 的 feature 表（`minecraft-data` 对 1.7.10 全返回 false） |
+| `connect(options, {baseDelayMs, maxDelayMs, maxTries, createBot})` | 断线重连：断线后**重建整个 bot**，指数退避 |
 
 `bot` 上：`bot.formatMessage(input)`（同 `formatMessage(input, options.lang)`）、
 `bot.supportFeature(feature)`、`bot.registry`（FML 注册表注入，blocks 4258 / items 11343）。
+
+### 1.1 断线重连
+
+mineflayer 本身不管重连。`connect()` 是一个薄封装：socket 断了就把 bot 整个重建
+（世界缓存、背包、打开的窗口都跟着旧连接一起丢掉，重建比原地清理更可靠）。
+
+```js
+const { connect } = require('mineflayer-fork')
+const link = connect({ host: '127.0.0.1', port: 54615, username: 'bot' })
+link.on('bot', (bot) => bot.once('spawn', () => console.log('连上了')))
+link.on('reconnect', ({ delay, tries }) => console.log(`${delay}ms 后第 ${tries} 次重连`))
+link.on('giveup', ({ reason, tries }) => console.log('放弃', reason, tries))
+link.start()
+```
+
+`link.bot` 是当前那一个 bot（重连后换成新的）；`link.stop()` 停止重试并退出。
+退避是 `baseDelayMs * 2^(n-1)`，上限 `maxDelayMs`，`maxTries` 次后发 `giveup`。
+注意：重连期间旧 bot 上的监听、任务状态都不保留，脚本要监听 `bot` 事件重新挂。
 
 ## 2. 世界与方块
 
