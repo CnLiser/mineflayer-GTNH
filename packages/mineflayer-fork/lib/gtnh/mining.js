@@ -7,6 +7,16 @@ const { Vec3 } = require('vec3')
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
+// 服务端不退 blockUpdate 时 bot.dig() 会永远挂着（挖不动、工具不对、区块卸载都会这样），
+// 所以所有挖掘动作都套一层超时：挖不动就换下一块，别把整个循环挂死。
+function withTimeout (promise, ms, fallback) {
+  let timer
+  return Promise.race([
+    promise.catch(() => fallback),
+    new Promise((resolve) => { timer = setTimeout(() => resolve(fallback), ms) })
+  ]).finally(() => clearTimeout(timer))
+}
+
 // 名字（或名字数组）→ 方块 id 列表。GTNH 的注册名没有 `minecraft:` 前缀，这里两种都收。
 function resolveBlock (bot, n) {
   if (typeof n === 'number') return bot.registry.blocks[n] || null
@@ -31,16 +41,17 @@ async function mineBlock (bot, block, opts = {}) {
     // 站到方块旁边一格，别站到它正上方（挖自己脚下会掉下去）
     const stand = new Vec3(pos.x + 1, pos.y, pos.z + 1) // 和矿同层站，别站到空中
     const ok = await bot.goto(stand, { dig: opts.dig !== false, timeoutMs: opts.timeoutMs || 20000 })
-    if (!ok) return false
+    // 走不过去但还在服务端的方块交互半径里（1.7 约 5 格），就直接挖——别白跑一趟
+    if (!ok && bot.entity.position.distanceTo(pos) > 5) return false
   }
   const fresh = bot.blockAt(pos)
   if (!fresh || !fresh.boundingBox || fresh.boundingBox === 'empty') return false
-  if (!opts.force && bot.canDigBlock && !bot.canDigBlock(fresh)) return false
-  try {
-    await bot.dig(fresh, opts.force)
-  } catch (e) {
-    return false
-  }
+  // 不直接用 bot.canDigBlock：它要求 prismarine 的 block.diggable，而 GTNH 的方块原型
+  // 多数没这个字段（注册表来自 FML 的 ModIdData，不是 minecraft-data），
+  // 会把所有 GTNH 方块判成「挖不了」。这里只排除液体/火焰/基岩，剩下的交给 bot.dig 试。
+  if (!opts.force && /water|lava|fire|bedrock|barrier/i.test(fresh.name || '')) return false
+  const dug = await withTimeout(bot.dig(fresh, opts.force), opts.digTimeoutMs || 10000, 'timeout')
+  if (dug === 'timeout') return false
   await sleep(opts.afterMs || 250)
   return true
 }

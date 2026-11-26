@@ -159,6 +159,15 @@ async function followPath (bot, path, opts = {}) {
   return true
 }
 
+// 服务端不退 blockUpdate 时 bot.dig() 会永远挂着，挖掘动作都套一层超时。
+function digWithTimeout (bot, block, ms = 10000) {
+  let timer
+  return Promise.race([
+    bot.dig(block).then(() => 'ok', () => 'fail'),
+    new Promise((resolve) => { timer = setTimeout(() => resolve('timeout'), ms) })
+  ]).finally(() => clearTimeout(timer))
+}
+
 // 进入某个节点前清场：挖掉挡路的两格，或者脚下垫一块
 async function prepareNode (bot, node, opts = {}) {
   const { Vec3 } = require('vec3')
@@ -167,7 +176,7 @@ async function prepareNode (bot, node, opts = {}) {
       const b = bot.blockAt(new Vec3(node.x, y, node.z))
       if (!b || !b.boundingBox || b.boundingBox === 'empty') continue
       if (/bedrock|barrier|lava|water/i.test(b.name)) return false
-      try { await bot.dig(b) } catch (e) { return false }
+      if (await digWithTimeout(bot, b, opts.digTimeoutMs || 10000) !== 'ok') return false
       await new Promise((r) => setTimeout(r, 120))
     }
   }
@@ -215,7 +224,8 @@ async function digAhead (bot, goal, opts = {}) {
       const b = bot.blockAt(new Vec3(bx, y, bz))
       if (!b || !b.boundingBox || b.boundingBox === 'empty') continue
       if (/bedrock|barrier|lava|water/i.test(b.name)) return dug > 0
-      try { await bot.dig(b); dug++ } catch (e) { return dug > 0 }
+      if (await digWithTimeout(bot, b, opts.digTimeoutMs || 10000) !== 'ok') return dug > 0
+      dug++
       if (dug >= limit) break outer
     }
   }
