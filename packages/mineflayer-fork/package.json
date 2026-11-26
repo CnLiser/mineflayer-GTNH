@@ -7,9 +7,9 @@
   "scripts": {
     "test": "node --test test/*.test.js",
     "fork-smoke": "node tools/fork-smoke.js 127.0.0.1 54615 --tp \"20 90 20\"",
-    "machine-smoke": "node tools/machine-smoke.js 127.0.0.1 54615 --pos \"33 78 19\" --tp \"34.5 78 20.5\"",
-    "mui-smoke": "node tools/mui-smoke.js",
-    "machine-item-smoke": "node tools/machine-item-smoke.js 127.0.0.1 54615 --tp \"34.5 78 20.5\" --machine \"33 78 19\"",
+    "machine-smoke": "node tools/machine-smoke.js 127.0.0.1 54615",
+    "mui-smoke": "node tools/mui-smoke.js 127.0.0.1 54615",
+    "machine-item-smoke": "node tools/machine-item-smoke.js 127.0.0.1 54615",
     "action-smoke": "node tools/action-smoke.js 127.0.0.1 54615",
     "craft-smoke": "node tools/craft-smoke.js 127.0.0.1 54615 --tp \"20.5 90 20.5\"",
     "furnace-smoke": "node tools/furnace-smoke.js 127.0.0.1 54615 --tp \"20.5 90 20.5\"",
