@@ -95,6 +95,8 @@ async function followPath (bot, path, opts = {}) {
   const reach = opts.reach || 0.35
   const timeoutMs = opts.timeoutMs || 30000
   const started = Date.now()
+  let lastPos = bot.entity.position.clone()
+  let still = 0
 
   for (let i = 1; i < path.length; i++) {
     const target = path[i]
@@ -110,6 +112,10 @@ async function followPath (bot, path, opts = {}) {
       if (target.y > Math.round(p.y)) bot.setControlState('jump', true)
       else bot.setControlState('jump', false)
       await new Promise((r) => setTimeout(r, tickMs))
+      const np = bot.entity.position
+      if (np.distanceTo(lastPos) < 0.02) still++
+      else { still = 0; lastPos = np.clone() }
+      if (still > 40) return false // 2 秒没挪窝，卡住了
       if (bot.pathfinderAbort) return false
     }
     bot.setControlState('forward', false)
@@ -120,6 +126,31 @@ async function followPath (bot, path, opts = {}) {
   bot.setControlState('forward', false)
   bot.setControlState('jump', false)
   return true
+}
+
+// 把正前方挡住路的方块挖掉（最多两格高）。挖不动（基岩/需要工具）就返回 false。
+async function digAhead (bot, goal, opts = {}) {
+  const { Vec3 } = require('vec3')
+  const p = bot.entity.position
+  const dx = goal.x - p.x; const dz = goal.z - p.z
+  const len = Math.hypot(dx, dz) || 1
+  const fy = Math.floor(p.y + 0.1)
+  const limit = opts.digLimit || 2
+  let dug = 0
+  // 沿方向扫 1~3 格，从最近的实心方块开始挖
+  outer:
+  for (const d of [1, 1.5, 2, 2.5, 3]) {
+    const bx = Math.floor(p.x + (dx / len) * d)
+    const bz = Math.floor(p.z + (dz / len) * d)
+    for (const y of [fy, fy + 1]) {
+      const b = bot.blockAt(new Vec3(bx, y, bz))
+      if (!b || !b.boundingBox || b.boundingBox === 'empty') continue
+      if (/bedrock|barrier|lava|water/i.test(b.name)) return dug > 0
+      try { await bot.dig(b); dug++ } catch (e) { return dug > 0 }
+      if (dug >= limit) break outer
+    }
+  }
+  return dug > 0
 }
 
 // 挂到 bot 上：solidAt / findPathTo / goto
@@ -133,11 +164,20 @@ function attachPathfinder (bot) {
     return blockShapes(b).length > 0
   }
   bot.findPathTo = (goal, opts) => findPath({ solidAt: bot.solidAt }, bot.entity.position, goal, opts)
-  bot.goto = async (goal, opts) => {
-    const path = bot.findPathTo(goal, opts)
-    if (!path) return false
-    return followPath(bot, path, opts)
+  // dig: true 时卡住或完全没路，会让正前方的方块挪开再重规划（最多 retries 次）
+  bot.goto = async (goal, opts = {}) => {
+    const retries = opts.dig ? (opts.retries ?? 2) : 0
+    let path = bot.findPathTo(goal, opts)
+    for (let attempt = 0; ; attempt++) {
+      if (path && (await followPath(bot, path, opts))) return true
+      if (attempt >= retries) return false
+      const aim = path && path.length > 1
+        ? new Vec3(path[1].x + 0.5, path[1].y, path[1].z + 0.5)
+        : goal
+      if (!(await digAhead(bot, aim, opts))) return false
+      path = bot.findPathTo(goal, opts)
+    }
   }
 }
 
-module.exports = { findPath, followPath, canStand, fallTo, attachPathfinder }
+module.exports = { findPath, followPath, digAhead, canStand, fallTo, attachPathfinder }

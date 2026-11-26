@@ -114,8 +114,21 @@ bot.once('spawn', async () => {
     await sleep(3000)
   }
 
-  const w = await openMachine()
+  let w = await openMachine()
   console.log(`window ${w.id} type=${w.type} slots=${w.slots.length} inventoryStart=${w.inventoryStart}`)
+  // --auto 放的机器是空的；先塞一块铁锭进第一个空机器槽，这样「取出」方向也有得测
+  if (opt('auto') && !machineSlots().some((it) => it)) {
+    const dest = machineSlots().findIndex((it) => !it)
+    const src = playerSlots().findIndex((it) => it)
+    if (dest >= 0 && src >= 0) {
+      await bot.clickWindow(src + w.inventoryStart, 0, 0)
+      await sleep(300)
+      await bot.clickWindow(dest, 0, 0)
+      await sleep(300)
+      w = await reopen()
+      console.log('已往机器槽', dest, '塞了一个物品')
+    }
+  }
   console.log('机器槽:', machineSlots().map((it, i) => it ? `${i}:${it.name.split(':').pop()}x${it.count}` : `${i}:-`).join(' '))
   console.log('玩家槽:', playerSlots().map((it, i) => it ? `${i + w.inventoryStart}:${it.name.split(':').pop()}x${it.count}` : '').filter(Boolean).join(' ') || '(empty)')
 

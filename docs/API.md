@@ -191,11 +191,14 @@ bot.on('physicsTick', () => {})
 ```js
 const path = bot.findPathTo(new Vec3(x, y, z), { maxNodes: 6000 })  // [{x,y,z}, ...] 或 null
 const ok = await bot.goto(new Vec3(x, y, z), { timeoutMs: 30000 })  // 走过去，返回是否到达
+const dug = await bot.goto(new Vec3(x, y, z), { dig: true, retries: 2 })  // 卡住/没路就挖开正前方
 ```
 
 `bot.solidAt(x, y, z)` 是底层判定（没加载的区块按实心处理，宁可绕路）。
 两个注意点：半砖/台阶在规划时按整块算（physics 的 stepUp 会处理 0.5 格差）；
-`followPath` 不做避障重规划，卡住就返回 false，调用方自己决定下一步。
+`followPath` 不做避障重规划，卡住（位置 2 秒没变）就返回 false。
+传 `{ dig: true }` 时 `goto` 会先沿目标方向扫 1~3 格，挖掉最近的两格实心方块再重新规划，
+最多 `retries` 次；遇基岩/水/岩浆直接放弃。
 不要用 `bot.lookAt()` 改朝向——1.7 的 physics 用 `(sin(yaw), cos(yaw))` 当前向，
 `followPath` 里直接写 `bot.entity.yaw = atan2(dx, dz)`。
 
