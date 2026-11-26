@@ -125,6 +125,7 @@ async function equipToolFor (bot, block, opts = {}) {
 
 function attachHarvest (bot) {
   bot.toolNeeded = (block) => toolNeeded(block)
+  bot.toolKindOf = (item) => toolKindOf(item)
   bot.bannedPickaxes = () => bot.inventory.items().filter((it) => isBannedPickaxe(it.name))
   bot.findTools = (tool) => findTools(bot, tool)
   bot.equipToolFor = (block, opts) => equipToolFor(bot, block, opts)

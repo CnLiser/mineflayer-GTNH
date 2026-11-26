@@ -2246,5 +2246,10 @@ if (bot.blockAt(bot.entity.position) != null) { // otherwise the chunk is unload
 - 可用的镐 = `wooden_pickaxe` + `TConstruct:pickaxe` + `TConstruct:hammer`（TiC 锤也能挖）+ GT 的锤/多用途工具；
 - 背包里只有被禁的镐时，`equipToolFor` 的失败原因会点名「被 GT 禁了，只能用木镐或匠魂/GT 的镐」。
 
-**副作用**：TiC 镐的 `digTime` 被 mcdata 估成 7500 ms（它不认识 TiC 的挖掘速度），
-所以挖是能挖、但慢 8 秒。要提速需要给 TiC/GT 工具补一个经验 digTime（暂未做）。
+**已修（`lib/plugins/digging.js` 的 `digTime`）**：minecraft-data 不认识匠魂/GT 的工具，
+一律按徒手（速度 1）算，石头要 7500 ms。现在加了 GTNH-PATCH：当**工具确实匹配这个方块**
+（`toolKindOf(held)` 命中 `toolNeeded(block)` 的别名表）且**算出来的时间明显偏大**
+（`> hardness * 900`）时，按铁级速度 4 重算 `hardness * 1500 / 4`——石头从 7500 ms 降到 **562.5 ms**。
+原版工具（mcdata 认得，时间本来就不大）和创造模式不受影响；被禁的原版镐也不会被「提速」（它压根不在别名表里）。
+
+实机：TiC 镐挖石头，`digTime` 7500 → 562.5 ms，端到端 8 s → **3.2 s**（剩下的是服务端 tick 卡顿）。

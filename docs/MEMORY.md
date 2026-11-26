@@ -218,8 +218,8 @@ gtnhFlag  : u8                  // 恒等于 count（x1→01, x2→02, x64→40�
 | 动作层（挖掘 / 攻击 / 使用 / 合成 / 熔炉 / 丢弃 / 吃） | ✅ |
 | M4.5 vendored fork | 🚧 登录→生成→世界→物理→挖掘→背包→窗口→机器 GUI→动作层全通（生存挖掘/攻击/用物品已验） |
 
-**测试：全仓 252 个**（gtnh-data 77 / prismarine-chunk-1.7 7 / protocol-fml 48 /
-mineflayer-fork 120），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
+**测试：全仓 256 个**（gtnh-data 77 / prismarine-chunk-1.7 7 / protocol-fml 48 /
+mineflayer-fork 124），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
 能力等价地搬进了 fork（physics-tick 13 / blockshape 6 / chat 6 / support-feature 3 / inventory 5 / window 6 / entities 3 / reconnect 3 / pathfinder 12 / mining 5）。
 
 ## 6. 冒烟工具
@@ -287,7 +287,8 @@ npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数�
    pickaxe 0，没按材料分等级，挖不动高等级矿时不会自动换更好的工具；② 生存模式「挖掉→掉落物进背包」还没实机验过，
    还有个反直觉的规则：**原版镐只有木镐能用，石/铁/金/钻石镐被 GT 禁了**（实机：木镐 2.3 s 挖掉
    石头，钻石镐 20 s 不动；能用的是木镐、匠魂的镐/锤、GT 的锤，FINDINGS §35.7）。`harvest.js` 已经把
-   被禁的镐排除在挑选之外；TiC 镐的 digTime 被 mcdata 估得偏大（7.5 s），能挖但慢；③ 远距离 tp 后区块不来、物理停摆（FINDINGS §35.6），冒烟脚本 tp 别一次太远。
+   被禁的镐排除在挑选之外；TiC 镐的 digTime 被 mcdata 估成 7.5 s，`digging.js` 的 GTNH-PATCH 按铁级
+   速度重算后降到 562 ms（实机端到端 8 s → 3.2 s）；③ 远距离 tp 后区块不来、物理停摆（FINDINGS §35.6），冒烟脚本 tp 别一次太远。
 
 ## 8. 记忆里容易忘的小事
 
