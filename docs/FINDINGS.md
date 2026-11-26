@@ -471,10 +471,32 @@ minecraft-data 1.7 里 `packet_position_look` 定义成 `x, stance, y, z, ...`�
 服务器给的 y 可能不是整数，第一 tick 就 `collides()`。
 `tick()` 开头会先 `y += 0.1` 顶出来，否则任何方向都动不了。
 
-### 11.5 已知限制：半砖按整块算
+### 11.5 碰撞箱：半砖 / 台阶 / 栅栏（2026-11-26 已修）
 
-minecraft-data 1.7 的 `boundingBox` 只有 `empty` / `block`，没有半砖的真实高度，
-所以体素碰撞里半砖就是整块 —— 0.5 格的台阶也必须跳（原版 stepHeight=0.6 能直接走上去）。
+minecraft-data 1.7 的 `boundingBox` **所有方块**都是 `block`（只有 `empty`/`block` 两种），
+连石头也一样——真正的形状数据（`shapes`）是 1.13 才有的。所以早期实现把半砖、
+台阶、栅栏全当整块，0.5 格的台阶也必须跳。
+
+修法分两层：
+
+1. `packages/mineflayer-fork/lib/gtnh/blockshape.js`：按注册名 + metadata 补一张表
+   （slab `meta & 8` 是双砖→整块、否则 0..0.5；stairs `meta & 8` 倒置→0.5..1、
+   否则 0..0.5；fence/fence_gate/wall → 1.5；carpet → 1/16；snow_layer → 层数×1/8；
+   另有 farmland/chest/bed/enchanting_table/cake/brewing_stand）。没进表的方块回落整块。
+   将来数据里带 `shapes` 时优先用 `shapes`，这张表自然退役。
+2. `physics-tick.js` 的碰撞检测从 `isSolid(x,y,z) → bool` 升级成
+   `shapeAt(x,y,z) → AABB 数组`，逐盒与玩家 AABB 求交（`toBoxes` 同时吃
+   prismarine-block 的 `[minX,minY,minZ,maxX,maxY,maxZ]` 数组格式与对象格式）。
+   返回 `true`/`false` 仍按整块处理，老调用方不用改。
+
+顺带修掉一个**一直没生效**的 bug：`tick()` 里先 `moveAxis(...)` 再判断
+`state.velocity.x !== 0` 决定要不要上台阶，但 `moveAxis` 撞到东西时已经把
+`velocity[axis]` 清零——条件永远为假，`stepUp` 从来没被调用过。现在先存一份
+`vx`/`vz` 再调 `moveAxis`，成功上台阶后把速度还原。
+
+实测（本地服，`setblock` 半砖平台）：走上 `minecraft:stone_slab` 时 y 从 89.0
+抬到 89.5 且 `onGround` 保持 true，不用跳；1.5 格高的栅栏仍然拦得住
+（抬 0.6 后玩家 AABB 64.6..66.4 与 64..65.5 重叠）。
 
 ### 11.6 挖掘 / 放置
 
@@ -508,7 +530,8 @@ $ node packages/mineflayer-gtnh/tools/dig-smoke.js 127.0.0.1 54615 --tp "20 90 2
 > 所以冒烟测试支持 `--tp`；`move-smoke` 主要看**峰值速度**而不是总位移。
 
 测试：`packages/protocol-fml/test/movement.test.js`（4 个，字段顺序 + 字节偏移 + 往返）
-+ `packages/mineflayer-gtnh/test/physics.test.js`（12 个，落地/走路/疾跑/潜行/跳跃/撞墙/台阶/掉出世界）。
++ `packages/mineflayer-fork/test/physics-tick.test.js`（13 个，落地/走路/疾跑/潜行/跳跃/撞墙/半砖/栅栏/台阶/掉出世界）
++ `packages/mineflayer-fork/test/blockshape.test.js`（6 个，半砖/双砖/台阶/栅栏/地毯/雪层/未知方块）。
 
 ---
 

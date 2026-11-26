@@ -5,8 +5,8 @@
  *
  * 和原版的差别：
  *   - 原版有 0.6 的自动上台阶，这里没做（台阶就跳过去）；
- *   - 方块碰撞箱一律按整块算（minecraft-data 1.7 只有 block/empty 两种），
- *     所以栅栏/台阶/半砖这些会被当成整块，实际游玩会卡住；
+ *   - 碰撞箱：1.7.10 的数据只有 block/empty，半砖/台阶/栅栏的高度靠
+ *     blockshape.js 的表补（形状回调返回数组）；回调返回 true/false 时仍按整块处理；
  *   - 水里、梯子、冰面等特殊移动没做。
  *
  * 坐标系：position 是脚底中心，AABB = [x±0.3, y..y+1.8, z±0.3]。
@@ -34,6 +34,49 @@ const SPEED = {
 const EPS = 1e-7
 const MAX_STEP = 0.25
 
+const FULL = [{ minX: 0, minY: 0, minZ: 0, maxX: 1, maxY: 1, maxZ: 1 }]
+
+/*
+ * 形状回调可以返回：
+ *   true / false          —— 整块 / 空气（兼容老接口）
+ *   [{minX..maxZ}, ...]   —— 相对方块原点的碰撞盒
+ *   单个盒子对象           —— 同上
+ *   null / undefined      —— 空气
+ */
+function normalizeBox (box) {
+  // prismarine-block 的 shapes 是 [minX,minY,minZ,maxX,maxY,maxZ] 数组，
+  // blockshape.js 的表里是对象，两种都要吃得下。
+  if (Array.isArray(box)) {
+    return { minX: box[0], minY: box[1], minZ: box[2], maxX: box[3], maxY: box[4], maxZ: box[5] }
+  }
+  return box
+}
+
+function toBoxes (value) {
+  if (value === true) return FULL
+  if (!value) return null
+  if (Array.isArray(value)) {
+    if (!value.length) return null
+    if (value.length === 6 && typeof value[0] === 'number') return [normalizeBox(value)]
+    return value.map(normalizeBox)
+  }
+  if (typeof value === 'object' && typeof value.minY === 'number') return [value]
+  return null
+}
+
+/* 玩家 AABB 与「方块原点 + 相对盒」是否相交 */
+function boxHits (pos, originX, originY, originZ, box) {
+  const minX = pos.x - HALF
+  const maxX = pos.x + HALF
+  const minY = pos.y
+  const maxY = pos.y + HEIGHT
+  const minZ = pos.z - HALF
+  const maxZ = pos.z + HALF
+  return maxX - EPS > originX + box.minX && minX + EPS < originX + box.maxX &&
+    maxY - EPS > originY + box.minY && minY + EPS < originY + box.maxY &&
+    maxZ - EPS > originZ + box.minZ && minZ + EPS < originZ + box.maxZ
+}
+
 // 玩家 AABB 覆盖到的整数方块坐标
 function blocksInAABB (pos, cb) {
   const minX = Math.floor(pos.x - HALF + EPS)
@@ -52,26 +95,43 @@ function blocksInAABB (pos, cb) {
   return false
 }
 
-function collides (pos, isSolid) {
-  return blocksInAABB(pos, (x, y, z) => isSolid(x, y, z))
+function collides (pos, shapeAt) {
+  const minX = Math.floor(pos.x - HALF + EPS)
+  const maxX = Math.floor(pos.x + HALF - EPS)
+  const minY = Math.floor(pos.y + EPS)
+  const maxY = Math.floor(pos.y + HEIGHT - EPS)
+  const minZ = Math.floor(pos.z - HALF + EPS)
+  const maxZ = Math.floor(pos.z + HALF - EPS)
+  for (let x = minX; x <= maxX; x++) {
+    for (let y = minY; y <= maxY; y++) {
+      for (let z = minZ; z <= maxZ; z++) {
+        const boxes = toBoxes(shapeAt(x, y, z))
+        if (!boxes) continue
+        for (const box of boxes) {
+          if (boxHits(pos, x, y, z, box)) return true
+        }
+      }
+    }
+  }
+  return false
 }
 
 /*
  * 自动上台阶：原版 stepHeight = 0.6。
  * 抬 0.6 格 -> 横向移动 -> 再往下落回最近的可站立高度。
  */
-function stepUp (state, axis, delta, isSolid) {
+function stepUp (state, axis, delta, shapeAt) {
   const lifted = state.position.clone()
   lifted.y += 0.6
-  if (collides(lifted, isSolid)) return false
+  if (collides(lifted, shapeAt)) return false
 
   const moved = lifted.clone()
   if (axis === 'x') moved.x += delta
   if (axis === 'z') moved.z += delta
-  if (collides(moved, isSolid)) return false
+  if (collides(moved, shapeAt)) return false
 
   // 往下落，直到快要碰撞（留 0.01 余量）
-  while (moved.y - 0.05 > state.position.y && !collides(moved.clone().translate(0, -0.05, 0), isSolid)) {
+  while (moved.y - 0.05 > state.position.y && !collides(moved.clone().translate(0, -0.05, 0), shapeAt)) {
     moved.y -= 0.05
   }
   state.position.set(moved.x, moved.y, moved.z)
@@ -84,7 +144,7 @@ function stepUp (state, axis, delta, isSolid) {
  * 沿一个轴移动，遇到碰撞就停在接触面。
  * 返回是否撞到了东西。
  */
-function moveAxis (state, axis, delta, isSolid) {
+function moveAxis (state, axis, delta, shapeAt) {
   if (!delta) return false
   let remaining = delta
   while (Math.abs(remaining) > 1e-10) {
@@ -94,7 +154,7 @@ function moveAxis (state, axis, delta, isSolid) {
     if (axis === 'y') next.y += step
     if (axis === 'z') next.z += step
 
-    if (!collides(next, isSolid)) {
+    if (!collides(next, shapeAt)) {
       state.position.set(next.x, next.y, next.z)
       remaining -= step
       continue
@@ -108,7 +168,7 @@ function moveAxis (state, axis, delta, isSolid) {
       const mid = (lo + hi) / 2
       probe.set(state.position.x, state.position.y, state.position.z)
       probe[axis] += mid
-      if (collides(probe, isSolid)) hi = mid
+      if (collides(probe, shapeAt)) hi = mid
       else lo = mid
     }
     state.position[axis] += lo
@@ -125,11 +185,12 @@ function moveAxis (state, axis, delta, isSolid) {
  *   state.velocity  Vec3
  *   state.onGround  boolean
  * control: { forward, back, left, right, jump, sneak, sprint }
+ * shapeAt(x, y, z) 返回该方块的碰撞盒（见 toBoxes）
  */
-function tick (state, control, isSolid, yaw) {
+function tick (state, control, shapeAt, yaw) {
   // 出生点有时会嵌在方块里（服务器给的 y 不是整数），先往上顶出来，
   // 否则任何方向移动都会立刻撞墙，人物卡死。
-  if (collides(state.position, isSolid)) {
+  if (collides(state.position, shapeAt)) {
     state.position.y += 0.1
     state.velocity.y = 0
     state.onGround = true
@@ -176,16 +237,16 @@ function tick (state, control, isSolid, yaw) {
   }
 
   // ---- 逐轴移动：先 Y，再 X/Z（水平撞墙时尝试上台阶）----
-  moveAxis(state, 'y', state.velocity.y, isSolid)
-  if (moveAxis(state, 'x', state.velocity.x, isSolid) && wasOnGround && state.velocity.x !== 0) {
-    if (!stepUp(state, 'x', Math.sign(state.velocity.x) * Math.min(Math.abs(state.velocity.x), 0.3), isSolid)) {
-      state.velocity.x = 0
-    }
+  moveAxis(state, 'y', state.velocity.y, shapeAt)
+  // GTNH-PATCH: moveAxis 撞到时会把 velocity 清零，所以先留一份，
+  // 否则 stepUp 的条件永远为假（半砖/台阶一直走不上去）。
+  const vx = state.velocity.x
+  if (moveAxis(state, 'x', vx, shapeAt) && wasOnGround && vx !== 0) {
+    if (stepUp(state, 'x', Math.sign(vx) * Math.min(Math.abs(vx), 0.3), shapeAt)) state.velocity.x = vx
   }
-  if (moveAxis(state, 'z', state.velocity.z, isSolid) && wasOnGround && state.velocity.z !== 0) {
-    if (!stepUp(state, 'z', Math.sign(state.velocity.z) * Math.min(Math.abs(state.velocity.z), 0.3), isSolid)) {
-      state.velocity.z = 0
-    }
+  const vz = state.velocity.z
+  if (moveAxis(state, 'z', vz, shapeAt) && wasOnGround && vz !== 0) {
+    if (stepUp(state, 'z', Math.sign(vz) * Math.min(Math.abs(vz), 0.3), shapeAt)) state.velocity.z = vz
   }
 
   // 重力与阻力放在移动之后结算：原版就是「先动，再 motionY = (motionY - 0.08) * 0.98」，
@@ -206,6 +267,7 @@ module.exports = {
   tick,
   collides,
   blocksInAABB,
+  toBoxes,
   WIDTH,
   HEIGHT,
   EYE_HEIGHT,

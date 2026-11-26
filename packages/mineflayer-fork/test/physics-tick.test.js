@@ -93,16 +93,32 @@ test('撞墙会停下并贴住墙面', () => {
   assert.ok(st.position.z > 1.6, `应贴到墙前，实际 z=${st.position.z}`)
 })
 
-test('半砖在体素模型里按整块算，走不上去（已知限制）', () => {
-  // minecraft-data 1.7 的 boundingBox 只有 empty/block，没有半砖的真实高度，
-  // 所以 stepUp 只对「方块之间的缝」有用，半砖仍需跳。
-  const ledge = (x, y, z) => y < GROUND_Y || (z >= 1 && y < GROUND_Y + 0.5)
-  const walking = run(state(), 40, { forward: true }, ledge)
-  assert.equal(walking.position.y, GROUND_Y)
-  assert.ok(walking.position.z < 1)
+test('半砖只有 0.5 格高，走过去不用跳', () => {
+  // 形状回调返回半个盒子（blockshape.js 的 slab）：0..0.5，走上去落在 0.5
+  const HALF = [{ minX: 0, minY: 0, minZ: 0, maxX: 1, maxY: 0.5, maxZ: 1 }]
+  const FULL = [{ minX: 0, minY: 0, minZ: 0, maxX: 1, maxY: 1, maxZ: 1 }]
+  const shapeAt = (x, y, z) => {
+    if (y < GROUND_Y) return FULL
+    if (z >= 1 && y < GROUND_Y + 1) return HALF
+    return null
+  }
+  const walking = run(state(), 40, { forward: true }, shapeAt)
+  assert.ok(walking.position.z > 1, `应该走过去，实际 z=${walking.position.z}`)
+  assert.ok(Math.abs(walking.position.y - (GROUND_Y + 0.5)) < 1e-6, `应站在半砖上，实际 y=${walking.position.y}`)
+  assert.equal(walking.onGround, true)
+})
 
-  const jumping = run(state(), 40, { forward: true, jump: true }, ledge)
-  assert.ok(jumping.position.y >= GROUND_Y + 1 - 1e-6)
+test('栅栏高 1.5 格，抬 0.6 的自动上台阶过不去', () => {
+  const FENCE = [{ minX: 0, minY: 0, minZ: 0, maxX: 1, maxY: 1.5, maxZ: 1 }]
+  const FULL = [{ minX: 0, minY: 0, minZ: 0, maxX: 1, maxY: 1, maxZ: 1 }]
+  const shapeAt = (x, y, z) => {
+    if (y < GROUND_Y) return FULL
+    if (z >= 1 && y < GROUND_Y + 1) return FENCE
+    return null
+  }
+  const st = run(state(), 40, { forward: true }, shapeAt)
+  assert.ok(st.position.z < 1, '不能穿栅栏')
+  assert.equal(st.position.y, GROUND_Y, '也不该被抬上去')
 })
 
 test('一格高的坎走不上去，跳才上得去', () => {

@@ -15,6 +15,7 @@
 
 const { Vec3 } = require('vec3')
 const { tick } = require('./physics-tick')
+const { blockShapes } = require('./blockshape')
 
 class PlayerState {
   constructor (bot, control) {
@@ -39,10 +40,17 @@ class PlayerState {
   }
 }
 
-function isSolidBlock (block) {
-  if (!block) return false // 未加载的区块当空气：宁可掉下去也不要卡住
-  if (block.boundingBox === 'block') return true
-  return Array.isArray(block.shapes) && block.shapes.length > 0
+/*
+ * GTNH-PATCH: 返回碰撞盒数组而不是布尔，半砖/台阶/栅栏才有正确高度
+ * （1.7.10 的 minecraft-data 只有 boundingBox='block'，见 blockshape.js）。
+ * 未加载的区块当空气：宁可掉下去也不要卡住。
+ */
+function shapesOfBlock (block) {
+  if (!block) return null
+  if (block.boundingBox !== 'block' && !(Array.isArray(block.shapes) && block.shapes.length > 0)) {
+    return null
+  }
+  return blockShapes(block)
 }
 
 function Physics (registry, world) {
@@ -57,11 +65,11 @@ function Physics (registry, world) {
         const w = (worldOrGetter && worldOrGetter.getBlock) ? worldOrGetter : world
         return w.getBlock(new Vec3(x, y, z))
       }
-      const isSolid = (x, y, z) => isSolidBlock(getBlock(x, y, z))
+      const shapeAt = (x, y, z) => shapesOfBlock(getBlock(x, y, z))
       // 让 tick 直接改 state 上的 Vec3；onGround / 跳跃标记要回写给 PlayerState，
       // 否则实体永远处于「空中」，水平加速度一直是 0.02，走路慢得像在水里。
       const st = { position: state.pos, velocity: state.vel, onGround: state.onGround, jumped: false }
-      tick(st, state.control, isSolid, state.yaw)
+      tick(st, state.control, shapeAt, state.yaw)
       state.onGround = st.onGround
       // mineflayer 调 .apply(bot)；这里必须真的写回实体（OnGround / pos / vel），
       // 否则 bot.entity.onGround 永远 false，地面加速度 0.6 变 0.02，走路慢得像水里。

@@ -117,7 +117,7 @@ archive/
 
 `mineflayer-fork` 的 GTNH 补丁（都带 `GTNH-PATCH` 注释）：`lib/version.js`、
 `lib/loader.js`（createFmlClient + 注册表灌入 + gtnh mui 挂载）、`lib/plugins/blocks.js`
-（整份重写）、`lib/gtnh/{world,physics,physics-tick,modularui}.js`、`lib/plugins/physics.js`
+（整份重写）、`lib/gtnh/{world,physics,physics-tick,blockshape,modularui}.js`、`lib/plugins/physics.js`
 （换替身 + stance）、`entities.js` / `inventory.js`（传 registry、光标补丁、隐式窗口）、
 `game.js`（brand 通道）、`health.js`（spawn 兜底）。
 
@@ -211,9 +211,9 @@ gtnhFlag  : u8                  // 恒等于 count（x1→01, x2→02, x64→40�
 | 动作层（挖掘 / 攻击 / 使用 / 合成 / 熔炉 / 丢弃 / 吃） | ✅ |
 | M4.5 vendored fork | 🚧 登录→生成→世界→物理→挖掘→背包→窗口→机器 GUI→动作层全通（生存挖掘/攻击/用物品已验） |
 
-**测试：全仓 190 个**（gtnh-data 56 / prismarine-chunk-1.7 7 / protocol-fml 48 /
-mineflayer-fork 79），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
-能力等价地搬进了 fork（physics-tick 13 / chat 6 / support-feature 3 / inventory 5 / window 6）。
+**测试：全仓 197 个**（gtnh-data 56 / prismarine-chunk-1.7 7 / protocol-fml 48 /
+mineflayer-fork 86），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
+能力等价地搬进了 fork（physics-tick 13 / blockshape 6 / chat 6 / support-feature 3 / inventory 5 / window 6）。
 
 ## 6. 冒烟工具
 
@@ -257,7 +257,13 @@ npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数�
    `decodeSyncValue` 现在按 key 把 8 字节分成 double（auto_sync）与 long（能量），
    详见 FINDINGS §17.4.1。
 3. ~~生存模式挖掘~~：已验（`action-smoke`：沙子 750ms→实测 1135ms）。
-4. **物理细节**：半砖/台阶按整块算，一格坎必须跳（1.7 数据没有真实碰撞盒高度）。
+4. ~~物理半砖/台阶~~：已修——1.7.10 的 minecraft-data 把**所有**方块都标成
+   `boundingBox: 'block'`，半砖/台阶/栅栏全被当整块；新增 `lib/gtnh/blockshape.js`
+   按注册名 + metadata 补一张碰撞盒表（slab 0.5 / stairs 0.5 或上半 / fence·wall 1.5 /
+   carpet 1/16 / snow_layer 按层数），`physics-tick.js` 的碰撞检测从 `isSolid` 布尔
+   升级成逐盒 AABB。顺带修掉 `stepUp` 的死代码：`moveAxis` 撞到就把 velocity 清零，
+   导致 `stepUp` 的条件永远为假，自动上台阶从未生效；现在先留一份 vx/vz 再调。
+   实测：走到 `minecraft:stone_slab` 上 y 从 89.0 抬到 89.5，不用跳。
 5. ~~动作补齐~~：使用物品 / 攻击 / 合成 / 熔炉 / 丢弃 / 吃 均已验（`action-smoke` / `craft-smoke` / `furnace-smoke` / `drop-eat-smoke`）。
 6. ~~fork 收尾~~：已完成——`loadServerMods` / `formatMessage`（+ `messageToJSON`）搬到
    `lib/gtnh/{mods,chat}.js`，4 个 tool 改 require fork 门面，旧包的窗口/背包/物理/聊天/feature
