@@ -32,6 +32,7 @@ function findPath (world, start, goal, opts = {}) {
   const diggable = opts.dig ? (opts.diggable || (() => true)) : null
   const digCost = opts.digCost || 3
   const bridgeCost = opts.bridge ? (opts.bridgeCost || 6) : 0
+  const jumpCost = opts.jump === false ? 0 : (opts.jumpCost || 2.5)
   const sx = Math.floor(start.x); const sy = Math.round(start.y); const sz = Math.floor(start.z)
   const gx = Math.floor(goal.x); const gy = Math.round(goal.y); const gz = Math.floor(goal.z)
   const maxNodes = opts.maxNodes || MAX_NODES
@@ -54,7 +55,7 @@ function findPath (world, start, goal, opts = {}) {
     const cur = open.splice(bi, 1)[0]
     if (cur.x === gx && cur.y === gy && cur.z === gz) {
       const path = []
-      for (let n = cur; n; n = n.parent) path.push({ x: n.x, y: n.y, z: n.z })
+      for (let n = cur; n; n = n.parent) path.push(n.jump ? { x: n.x, y: n.y, z: n.z, jump: true } : { x: n.x, y: n.y, z: n.z })
       return path.reverse()
     }
     const curKey = key(cur.x, cur.y, cur.z)
@@ -83,20 +84,29 @@ function findPath (world, start, goal, opts = {}) {
           neighbors.push([nx, cur.y, nz, 1 + digCost * need.length])
         }
       }
+      // 跳跃跨过 1 格空隙：中间那格脚底是空的，对面站得住，头顶没东西
+      if (jumpCost > 0) {
+        const mx = cur.x + dx; const mz = cur.z + dz
+        const jx = cur.x + dx * 2; const jz = cur.z + dz * 2
+        if (!solidAt(mx, cur.y - 1, mz) && !solidAt(mx, cur.y, mz) && !solidAt(mx, cur.y + 1, mz) &&
+            !solidAt(cur.x, cur.y + 2, cur.z) && canStand(solidAt, jx, cur.y, jz)) {
+          neighbors.push([jx, cur.y, jz, 1 + jumpCost, true])
+        }
+      }
       // 搭桥：脚下悬空（下面多深都行，垫一块就站住了），代价高，由调用方保证手里有方块
       if (bridgeCost > 0 && !solidAt(nx, cur.y - 1, nz) &&
           !solidAt(nx, cur.y, nz) && !solidAt(nx, cur.y + 1, nz)) {
         neighbors.push([nx, cur.y, nz, 1 + bridgeCost])
       }
 
-      for (const [x, y, z, cost] of neighbors) {
+      for (const [x, y, z, cost, jump] of neighbors) {
         const k = key(x, y, z)
         if (closed.has(k)) continue
         const g = cur.g + cost
         if (best.has(k) && best.get(k) <= g) continue
         best.set(k, g)
         const h = Math.abs(x - gx) + Math.abs(y - gy) + Math.abs(z - gz)
-        open.push({ x, y, z, g, f: g + h, parent: cur })
+        open.push({ x, y, z, g, f: g + h, parent: cur, jump: !!jump })
       }
     }
   }
@@ -120,6 +130,7 @@ async function followPath (bot, path, opts = {}) {
     // 走到这个节点之前，先把要挖的挖掉、要垫的垫上
     if ((opts.dig || opts.bridge) && !(await prepareNode(bot, target, opts))) return false
     const goal = new Vec3(target.x + 0.5, target.y, target.z + 0.5)
+    let ticks = 0
     while (Date.now() - started < timeoutMs) {
       const p = bot.entity.position
       const dist = p.distanceTo(goal)
@@ -128,8 +139,9 @@ async function followPath (bot, path, opts = {}) {
       const dx = goal.x - p.x; const dz = goal.z - p.z
       if (Math.hypot(dx, dz) > 0.05) bot.entity.yaw = Math.atan2(dx, dz)
       bot.setControlState('forward', true)
-      if (target.y > Math.round(p.y)) bot.setControlState('jump', true)
-      else bot.setControlState('jump', false)
+      // 跳跃节点先跑几 tick 把水平速度带起来再起跳，否则会原地跳（空中没有加速度）
+      ticks++
+      bot.setControlState('jump', target.jump ? ticks > 3 : target.y > Math.round(p.y))
       await new Promise((r) => setTimeout(r, tickMs))
       const np = bot.entity.position
       if (np.distanceTo(lastPos) < 0.02) still++

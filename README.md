@@ -3,7 +3,7 @@
 **A mineflayer fork that actually works on GT: New Horizons (Minecraft 1.7.10 + Forge).**
 
 [![test](https://github.com/CnLiser/mineflayer-GTNH/actions/workflows/test.yml/badge.svg)](https://github.com/CnLiser/mineflayer-GTNH/actions/workflows/test.yml)
-[![tests](https://img.shields.io/badge/tests-227%20passing-brightgreen)](#测试)
+[![tests](https://img.shields.io/badge/tests-228%20passing-brightgreen)](#测试)
 [![node](https://img.shields.io/badge/node-%E2%89%A522-informational)](https://nodejs.org)
 [![MC](https://img.shields.io/badge/minecraft-1.7.10-blue)](#)
 [![GTNH](https://img.shields.io/badge/GTNH-2.9.0-orange)](#)
@@ -35,7 +35,7 @@
 git clone https://github.com/CnLiser/mineflayer-GTNH.git
 cd mineflayer-GTNH
 npm install
-npm test                              # 227 个测试，4 个 workspace 全绿
+npm test                              # 228 个测试，4 个 workspace 全绿
 ```
 
 需要一个 **GTNH 2.9.0 服务端**（`online-mode=false` 最省事）：

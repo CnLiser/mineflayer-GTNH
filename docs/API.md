@@ -193,13 +193,15 @@ const path = bot.findPathTo(new Vec3(x, y, z), { maxNodes: 6000 })  // [{x,y,z},
 const ok = await bot.goto(new Vec3(x, y, z), { timeoutMs: 30000 })  // 走过去，返回是否到达
 const ok = await bot.goto(new Vec3(x, y, z), { dig: true })     // 允许挖穿挡路的方块
 const ok = await bot.goto(new Vec3(x, y, z), { bridge: true })  // 允许在沟上垫方块（手里要有方块）
+const ok = await bot.goto(new Vec3(x, y, z), { jump: false })   // 不跳（默认会跳 1 格宽的沟）
 ```
 
 `bot.solidAt(x, y, z)` 是底层判定（没加载的区块按实心处理，宁可绕路）。
 两个注意点：半砖/台阶在规划时按整块算（physics 的 stepUp 会处理 0.5 格差）；
 `followPath` 不做避障重规划，卡住（位置 2 秒没变）就返回 false。
-`dig` / `bridge` 是两种**规划期**动作（不是事后补救）：A* 会把「挖穿两格高障碍」
-（代价 `1 + 3×格数`）和「在悬空处垫一块」（代价 `1 + 6`）也算成可走的边，
+`dig` / `bridge` / `jump` 是三种**规划期**动作（不是事后补救）：A* 会把「挖穿两格高障碍」
+（代价 `1 + 3×格数`）、「在悬空处垫一块」（代价 `1 + 6`）、「跳过 1 格宽的空隙」（代价 `1 + 2.5`）
+也算成可走的边，
 于是它会自己权衡绕路还是挖/垫。执行时 `followPath` 在进入这类节点前先挖/先垫。
 `bot.diggableAt(x,y,z)` 判定能不能挖（基岩/水/岩浆不行）。
 `goto` 失败后还有兜底：沿目标方向扫 1~3 格挖两格再重新规划，最多 `retries` 次。
