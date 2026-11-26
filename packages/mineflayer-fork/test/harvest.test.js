@@ -15,15 +15,24 @@ test('机器方块要扳手，矿石要镐，火把这类不要工具', () => {
   assert.equal(toolNeeded({ name: 'minecraft:torch' }), null)
 })
 
-test('找工具时挑材质最好的那把', () => {
-  const bot = fakeBot([
+test('被 GT 禁掉的原版镐不参与挑选，只有木镐和匠魂镐能用', () => {
+  const banned = fakeBot([
     { name: 'minecraft:stone_pickaxe' },
     { name: 'minecraft:diamond_pickaxe' },
-    { name: 'minecraft:iron_pickaxe' }
+    { name: 'minecraft:iron_pickaxe' },
+    { name: 'minecraft:golden_pickaxe' }
   ])
-  const tools = findTools(bot, 'pickaxe')
-  assert.equal(tools[0].name, 'minecraft:diamond_pickaxe')
-  assert.equal(tools.length, 3)
+  assert.deepEqual(findTools(banned, 'pickaxe'), [])
+
+  const usable = fakeBot([
+    { name: 'minecraft:wooden_pickaxe' },
+    { name: 'TConstruct:pickaxe' },
+    { name: 'TConstruct:hammer' }
+  ])
+  const names = findTools(usable, 'pickaxe').map((i) => i.name)
+  assert.equal(names.length, 3)
+  assert.ok(names.includes('minecraft:wooden_pickaxe'))
+  assert.ok(names.includes('TConstruct:pickaxe'))
 })
 
 test('pickaxe 不会被当成 axe', () => {
@@ -36,6 +45,14 @@ test('没有扳手时挖机器返回失败和原因', async () => {
   const r = await equipToolFor(bot, { name: 'gregtech:gt.blockmachines', metadata: 1 })
   assert.equal(r.ok, false)
   assert.match(r.reason, /wrench/)
+})
+
+test('背包里只有被禁的镐时，失败原因里点名', async () => {
+  const bot = fakeBot([{ name: 'minecraft:diamond_pickaxe' }])
+  const r = await equipToolFor(bot, { name: 'minecraft:stone', metadata: 0 })
+  assert.equal(r.ok, false)
+  assert.match(r.reason, /diamond_pickaxe/)
+  assert.match(r.reason, /被 GT 禁了/)
 })
 
 test('不需要工具时直接放行', async () => {

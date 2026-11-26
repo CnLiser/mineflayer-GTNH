@@ -10,14 +10,26 @@ const { harvestToolFor, gtToolKind } = require('gtnh-data')
 
 // GT 把扳手、剪线钳、锤全塞进 gregtech:gt.metatool.01 + damage，注册名一样，
 // 只能靠 damage 查表（gtnh-data 的 gt-tools.json）。这张表优先于下面的名字正则。
-// 同一类里还允许的「替代工具」：GT 的锤既能砸东西也能当镐挖石/矿。
+// 同一类里还允许的「替代工具」：GT 的锤、匠魂（TiC）的锤既能砸东西也能当镐挖石/矿。
 const TOOL_ALIASES = {
   pickaxe: ['pickaxe', 'hammer', 'multitool']
+}
+
+// GT 把原版镐禁了：只有木镐还能挖（2026-11-27 用户确认 + 实机对照：木镐 2.3s 挖掉石头，
+// 钻石镐 20s 纹丝不动）。所以找镐时要把这几把原版镐排除掉，否则会挑到一把用不了的，
+// 卡在「装备了工具却挖不动」上。石/铁/金/钻石全禁，只留 wooden_pickaxe。
+// 能用的替代：匠魂的镐（TConstruct:pickaxe）与锤（TConstruct:hammer），以及 GT 自己的工具。
+const BANNED_PICKAXES = new Set(['stone_pickaxe', 'iron_pickaxe', 'golden_pickaxe', 'diamond_pickaxe'])
+
+// 注册名有时带 minecraft: 前缀、有时不带（GTNH 的方块名多数不带），统一去掉再比
+function isBannedPickaxe (name) {
+  return BANNED_PICKAXES.has(String(name || '').replace(/^minecraft:/, ''))
 }
 
 // 工具种类 → 物品名匹配。顺序有意义：pickaxe 必须排在 axe 前面（"pickaxe" 里也有 "axe"）。
 const TOOL_PATTERNS = {
   pickaxe: /pickaxe|pick_head|_pick$|drill/i,
+  hammer: /hammer/i,
   wrench: /wrench|screwdriver|screwdriver|monkeywrench|pliers/i,
   cutter: /wire_?cutter|wirecutter|snippers|cutter/i,
   shears: /shears/i,
@@ -62,6 +74,8 @@ function toolNeeded (block) {
 // 一个物品属于哪类工具：先查 GT 的 damage 表，再按名字正则。
 function toolKindOf (item) {
   if (!item) return null
+  // 被 GT 禁掉的原版镐：当成「不是工具」，免得 findTools 挑中它们
+  if (isBannedPickaxe(item.name)) return null
   const gt = gtToolKind(item.name || '', item.metadata ?? 0)
   if (gt) return gt
   const name = item.name || ''
@@ -93,7 +107,9 @@ async function equipToolFor (bot, block, opts = {}) {
   if (!bot.inventory || typeof bot.inventory.items !== 'function') return { ok: true, tool: null, need }
   const candidates = findTools(bot, need.tool)
   if (!candidates.length) {
-    return { ok: false, reason: `没有${need.tool}（方块 ${block.name} 需要）`, need }
+    const banned = bot.inventory.items().filter((it) => isBannedPickaxe(it.name))
+    const extra = banned.length ? `；背包里的 ${banned.map((b) => b.name).join(' / ')} 被 GT 禁了，只能用木镐或匠魂/GT 的镐` : ''
+    return { ok: false, reason: `没有${need.tool}（方块 ${block.name} 需要）${extra}`, need }
   }
   const best = candidates[0]
   if (sameItem(bot.heldItem, best)) return { ok: true, tool: best, need }
@@ -109,8 +125,9 @@ async function equipToolFor (bot, block, opts = {}) {
 
 function attachHarvest (bot) {
   bot.toolNeeded = (block) => toolNeeded(block)
+  bot.bannedPickaxes = () => bot.inventory.items().filter((it) => isBannedPickaxe(it.name))
   bot.findTools = (tool) => findTools(bot, tool)
   bot.equipToolFor = (block, opts) => equipToolFor(bot, block, opts)
 }
 
-module.exports = { toolNeeded, toolKindOf, findTools, equipToolFor, attachHarvest, TOOL_PATTERNS, TOOL_ALIASES, toolRank, sameItem }
+module.exports = { toolNeeded, toolKindOf, findTools, equipToolFor, attachHarvest, TOOL_PATTERNS, TOOL_ALIASES, BANNED_PICKAXES, isBannedPickaxe, toolRank, sameItem }

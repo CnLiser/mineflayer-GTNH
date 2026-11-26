@@ -26,3 +26,6 @@ tmp/
 .tmp-scan/
 .tmp-*.js
 packages/gtnh-data/tools/jmx/pp*.jar
+packages/gtnh-data/tools/jmx/gt*.jar
+packages/gtnh-data/tools/jmx/mfgt*.txt
+packages/gtnh-data/tools/jmx/build[0-9]/

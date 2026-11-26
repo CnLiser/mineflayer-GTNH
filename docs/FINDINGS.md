@@ -2196,7 +2196,7 @@ if (bot.blockAt(bot.entity.position) != null) { // otherwise the chunk is unload
 手动补发 `position` 包也没用，说明卡在服务端那侧（该列没发）。
 所以冒烟/探针脚本要 tp 到场地的，**别一次 tp 太远**；先 tp 到附近再走过去更稳。
 
-### 35.7 生存模式：空手挖得动，**手持物品就挖不动**（未解）
+### 35.7 生存模式：空手挖得动，手持镐就挖不动——因为 GT 把原版镐禁了
 
 想验「挖掉 → 掉落物进背包」，结果撞在一个反常现象上。同一场地、同一格、同一会话：
 
@@ -2225,3 +2225,26 @@ if (bot.blockAt(bot.entity.position) != null) { // otherwise the chunk is unload
 要用真实客户端在同一台服务器上挖一次做对照，才能判定这是服务器的问题还是 bot 的问题。
 
 **影响**：`bot.mineNearby` 在生存服上挖不动（创造模式正常，`fork-smoke` 的挖掘就是创造模式）。
+
+**2026-11-27 结论（用户确认 + 实机对照）**：现象不是 bug，是 GT 的设计——
+**原版镐里只有木镐能挖，石/铁/金/钻石镐全被 GT 禁掉了**，要用 GT 自己的工具或匠魂（TiC）的工具。
+
+实机对照（生存模式，同一场地，`/gamemode 0`，手持工具从 slot 36 equip）：
+
+| 手持 | 方块 | 客户端 `digTime` | 结果 |
+| --- | --- | --- | --- |
+| `minecraft:wooden_pickaxe` | `stone` | 1150 ms | ✅ 2.3 s 挖掉 |
+| `minecraft:diamond_pickaxe` | `stone` | 300 ms | ❌ 20 s 超时，服务端方块不动 |
+| `TConstruct:pickaxe` | `stone` | 7500 ms | ✅ 约 8 s 挖掉 |
+
+所以「空手能挖」也是同一件事的另一面：空手的速度就是 1.0，GT 不拦；
+拿了被禁的镐反而让服务端把挖掘速度算成 0（`getDigSpeed` 判为不能采）。
+
+**代码侧已按这个规则改**（`packages/mineflayer-fork/lib/gtnh/harvest.js`）：
+- `BANNED_PICKAXES = { stone_pickaxe, iron_pickaxe, golden_pickaxe, diamond_pickaxe }`，找镐时直接排除，
+  否则会挑中一把「装备了也挖不动」的镐卡在那里；
+- 可用的镐 = `wooden_pickaxe` + `TConstruct:pickaxe` + `TConstruct:hammer`（TiC 锤也能挖）+ GT 的锤/多用途工具；
+- 背包里只有被禁的镐时，`equipToolFor` 的失败原因会点名「被 GT 禁了，只能用木镐或匠魂/GT 的镐」。
+
+**副作用**：TiC 镐的 `digTime` 被 mcdata 估成 7500 ms（它不认识 TiC 的挖掘速度），
+所以挖是能挖、但慢 8 秒。要提速需要给 TiC/GT 工具补一个经验 digTime（暂未做）。
