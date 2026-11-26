@@ -49,6 +49,9 @@ npm --workspace mineflayer-fork run recipes-smoke
 
 # 3) 联机冒烟：登录 → 走路 → 挖掘 → 背包
 npm --workspace mineflayer-fork run fork-smoke
+
+# 4) 机器冒烟：--auto 会自己铺地面、放机器、打开 GUI，不依赖玩家手搭的场景
+node packages/mineflayer-fork/tools/mui-smoke.js 127.0.0.1 54615 --auto
 ```
 
 最小可用脚本（完整可跑的在 [`examples/`](examples/)）：

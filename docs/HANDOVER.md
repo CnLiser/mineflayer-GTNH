@@ -26,6 +26,10 @@ npm --workspace mineflayer-fork run recipes-smoke
 
 # 联机冒烟（需要服务端 + 游戏内没人在同一位置）
 npm --workspace mineflayer-fork run fork-smoke
+
+# 机器冒烟（会自己搭场景：tp 拉区块 → 铺石头地面 → 放置机器 → 打开 GUI）
+node packages/mineflayer-fork/tools/mui-smoke.js 127.0.0.1 54615 --auto
+node packages/mineflayer-fork/tools/machine-smoke.js 127.0.0.1 54615 --auto
 ```
 
 全绿说明环境和记忆都对得上，可以开工。
