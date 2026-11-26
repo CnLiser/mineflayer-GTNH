@@ -2141,3 +2141,57 @@ scoop 26 / shears 16 / cutter 4。
 缺口：`gregtech:gt.blockores` 在 harvest 表里没有条目（GT 覆盖的是 `canHarvestBlock`），
 `harvest.js` 按名字 `/blockores|:.*_ore$|_ore\b/` 兜底成 pickaxe 0；
 等级没有按材料细分，实际挖不动高等级矿时不会自动升级工具。
+
+### 35.5 生存模式：原版工具挖不动 GTNH 的矿
+
+现象：生存模式 `bot.dig` 挖 `minecraft:coal_ore` **永远超时**（10–15 秒），
+服务端 `testforblock … air` 一直返回「is Coal Ore」；同一个方块在创造模式 308ms 就没了。
+
+对照实验（同一套 tp + `setblock` 场景，`/give … minecraft:diamond_pickaxe` 手持原版钻石镐 278）：
+
+| 方块 | 要求 | 结果 |
+| --- | --- | --- |
+| `minecraft:dirt` | 任何工具 | **5.05 s 挖掉**，服务端确认变空气 |
+| `minecraft:coal_ore` | pickaxe 0 | 15 s 不动，服务端方块不变 |
+
+排除掉的项：
+
+- 区块没问题——`bot.blockAt` 读得到、`bot.entity.position.y ≈ 81.000`（站在地面上）、`onGround=true`；
+- 包没问题——创造模式用同一份 `block_dig` 成功，`packet_block_dig` 就是 `status / location(position_ibi) / face`；
+- 不是「等太短」——把 `bot.digTime` 临时改成 5000 ms 再挖，还是不动；
+- 不是「发包频率」——每 50 ms 重发 `status 0` 持续 4 秒再 `status 2`，还是不动。
+
+结论：**GTNH 服务端在算「需要工具才能挖」的方块时，不认原版工具的物品 id**。
+`getPlayerRelativeBlockHardness` 给原版钻石镐算的是惩罚速度，`progress` 永远到不了 1，
+于是 `status 2` 被忽略、服务端也不发 `block_change`（客户端就一直等 `blockUpdate`，超时）。
+dirt 不需要工具，所以能挖——这条对照同时证明了「客户端流程本身是对的」。
+
+下一步：用 GT 自己的工具复验。`/give <player> gregtech:gt.metatool.01 1 12` 在 1.7.10 上不给
+（背包是空的，`bot.heldItem` 为 null），得走 `bot.creative.setInventorySlot` + registry 里的数字 id。
+
+### 35.6 远距离 tp 后区块不来，物理停摆
+
+现象：`/tp` 到离出生点很远的位置后，`bot.blockAt` 一直 `null`、`bot.world.columns` 不新增该列，
+bot 的位置被顶高 1.62 格（正好 `EYE_HEIGHT`）、`onGround` 却是 `true`。
+
+原因在 `lib/plugins/physics.js:93`：
+
+```js
+if (bot.blockAt(bot.entity.position) != null) { // otherwise the chunk is unloaded: no simulation
+  …
+  updatePosition(now)   // 只有区块加载时才发 position 包
+}
+```
+
+区块没加载就不发包 → 服务端以为玩家还在旧位置 → 只继续发旧位置的区块 → 死锁。
+
+实测（同一个 bot，依次 tp）：
+
+| 目标 | 该区块到了吗 | 读方块 |
+| --- | --- | --- |
+| (60, 80, 60) | 是 | 正常 |
+| (100, 80, 100) | 是 | 正常 |
+| (160, 81, 162) | **否**（20 秒、`columns` 停在 289） | `null` |
+
+手动补发 `position` 包也没用，说明卡在服务端那侧（该列没发）。
+所以冒烟/探针脚本要 tp 到场地的，**别一次 tp 太远**；先 tp 到附近再走过去更稳。
