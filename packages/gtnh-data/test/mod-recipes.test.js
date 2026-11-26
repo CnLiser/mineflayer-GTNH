@@ -7,7 +7,7 @@ const { ModRecipes, loadModRecipes, MOD_RECIPES_FILE } = require('../index')
 const book = loadModRecipes()
 
 test('mod-recipes：总条数与各 mod 数量', () => {
-  assert.strictEqual(book.total, 8524)
+  assert.strictEqual(book.total, 8906)
   const s = book.summary()
   assert.strictEqual(s.byMod.thaumcraft, 2180)
   assert.strictEqual(s.byMod.forestry, 1280)
@@ -24,7 +24,9 @@ test('mod-recipes：总条数与各 mod 数量', () => {
   assert.strictEqual(s.byMod.harvestcraft, 118)
   assert.strictEqual(s.byMod.witchinggadgets, 56)
   assert.strictEqual(s.byMod.etfuturum, 9)
-  assert.deepStrictEqual(book.mods(), ['ae2', 'avaritia', 'bloodmagic', 'botania', 'enderio', 'etfuturum', 'forestry', 'galacticraft', 'harvestcraft', 'ic2', 'railcraft', 'tconstruct', 'thaumcraft', 'witchery', 'witchinggadgets'])
+  assert.strictEqual(s.byMod.galaxyspace, 32)
+  assert.strictEqual(s.byMod.binnie, 350)
+  assert.deepStrictEqual(book.mods(), ['ae2', 'avaritia', 'binnie', 'bloodmagic', 'botania', 'enderio', 'etfuturum', 'forestry', 'galacticraft', 'galaxyspace', 'harvestcraft', 'ic2', 'railcraft', 'tconstruct', 'thaumcraft', 'witchery', 'witchinggadgets'])
 })
 
 test('mod-recipes：每条配方的形状合法（out 是数组、ins 是备选数组的数组）', () => {
@@ -33,10 +35,12 @@ test('mod-recipes：每条配方的形状合法（out 是数组、ins 是备选�
     assert.ok(Array.isArray(r.out) && Array.isArray(r.ins))
     // 带网格尺寸的配方（Avaritia 9x9）用空数组占位，位置就是布局
     const isGrid = r.extra && typeof r.extra.w === 'number' && typeof r.extra.h === 'number'
+    // 平铺但带 extra.keys 的（GalaxySpace 火箭）也允许空位，位置与 keys 一一对应
+    const keepHoles = isGrid || (r.extra && Array.isArray(r.extra.keys))
     for (const cell of r.ins) {
       assert.ok(Array.isArray(cell), 'cell 必须是数组')
-      if (!isGrid) assert.ok(cell.length > 0, '非网格配方的 cell 必须非空')
-      for (const alt of cell) assert.ok(typeof alt.id === 'number' || typeof alt.ore === 'string')
+      if (!keepHoles) assert.ok(cell.length > 0, '非网格配方的 cell 必须非空')
+      for (const alt of cell) assert.ok(typeof alt.id === 'number' || typeof alt.ore === 'string' || typeof alt.species === 'string', '备选必须是物品、矿物词典或物种')
     }
   }
 })
@@ -253,6 +257,36 @@ test('mod-recipes：WitchingGadgets 地狱高炉/纺车', () => {
   assert.ok(one.extra.bonus && one.extra.bonus.id > 0)
   assert.strictEqual(book.forKind('spinning_wheel').length, 5)
   assert.ok(book.forKind('spinning_wheel').every((r) => r.out[0] && r.out[0].id > 0))
+})
+
+test('mod-recipes：GalaxySpace 火箭（T1..T8 各 4 条）', () => {
+  const rk = book.forKind('rocket')
+  assert.strictEqual(rk.length, 32)
+  assert.deepStrictEqual([...new Set(rk.map((r) => r.extra.tier))].sort((a, b) => a - b), [1, 2, 3, 4, 5, 6, 7, 8])
+  const t1 = rk.find((r) => r.extra.tier === 1)
+  assert.strictEqual(t1.out[0].name, 'GalacticraftCore:item.spaceship')
+  assert.ok(t1.ins.length > 9, 'GTNH 的火箭材料多于 3x3，不能按网格塞')
+  assert.strictEqual(t1.extra.keys.length, t1.ins.length, '平铺时必须记住原槽位')
+  const t8 = rk.find((r) => r.extra.tier === 8)
+  assert.strictEqual(t8.out[0].name, 'GalaxySpace:item.Tier8Rocket')
+  assert.ok(t8.ins.length > t1.ins.length)
+})
+
+test('mod-recipes：Binnie 培养器与蜜蜂/花突变', () => {
+  const inc = book.forKind('incubator')
+  assert.strictEqual(inc.length, 160)
+  assert.ok(inc.every((r) => r.ins.length === 1))
+  const medium = inc.find((r) => r.fluidOut[0] && r.fluidOut[0].name === 'binnie.growthmedium')
+  assert.ok(medium)
+  assert.ok(medium.fluidIn[0].name === 'water')
+  assert.ok(typeof medium.extra.lossChance === 'number')
+  assert.strictEqual(inc.filter((r) => r.out.length > 0).length, 153)
+
+  const bee = book.forKind('bee_mutation')
+  assert.strictEqual(bee.length, 153)
+  assert.ok(bee.every((r) => r.ins.length === 2 && r.out[0].species && r.ins.every((c) => c[0].species)))
+  assert.ok(bee.every((r) => typeof r.extra.chance === 'number' && r.extra.chance > 0))
+  assert.strictEqual(book.forKind('flower_mutation').length, 37)
 })
 
 test('mod-recipes：Et Futurum 锻造台', () => {

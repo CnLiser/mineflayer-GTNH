@@ -1968,3 +1968,37 @@ bot.digTime = (b) => bot.tconDigTime(b) * 1000   // 覆盖 mineflayer 只认原�
   `normalize()` 支持「网格保位」与「加权掉落拆解」。
 - 单测：`gtnh-data/test/mod-recipes.test.js` 加 4 条（Avaritia 网格 / HarvestCraft / WitchingGadgets / Et Futurum），
   fork `test/mod-recipes.test.js` 加 1 条；全仓 **202 测试**（gtnh-data 60 / fork 87 / chunk 7 / protocol-fml 48）。
+
+## 三十三、2026-11-26：第三批 NEI handler（GalaxySpace 火箭 / Binnie 突变）
+
+### 33.1 四个表在哪
+
+| mod | 表 | 条数 |
+| --- | --- | --- |
+| GalaxySpace | `galaxyspace.core.recipe.RocketRecipes.RECIPES_ROCKET_T1..T8`（`NasaWorkbenchRecipe`） | 32（每级 4） |
+| Binnie | `binnie.core.machines.inventory.Incubator.RECIPES`（`IncubatorRecipe`） | 160 |
+| Binnie/ExtraBees | `binnie.extrabees.genetics.ExtraBeeMutation.mutations`（`IMutation`） | 153 |
+| Binnie/Botany | `binnie.botany.genetics.FlowerHelper.flowerMutations` | 37 |
+
+`Forestry` 的 `IMutation` 只有 `getAllele0()/getAllele1()/getTemplate()/getBaseChance()/isSecret()`，
+没有物品 id —— 产物和输入都是**物种名**，所以归一化成 `{"species": "Arid"}`，不参与 `byOutput`（物品索引）。
+
+### 33.2 新形状：物种
+
+`build-mod-recipes.js` 加 `isSpecies(x)`，`asAlternatives` 遇到 `{species}` 直接保留。
+`byOutput` 索引跳过没有 id 的产物（`o.id + ':'` 会变成 `undefined:0`，测试里断言这个 key 不存在）。
+
+### 33.3 GalaxySpace 火箭不是 3x3
+
+`NasaWorkbenchRecipe.input` 是 `HashMap<Integer, ItemStack>`，`getRecipeSize()` 返回**条目数**：
+T1 有 19 格材料、T8 有 53 格。第一版按 `minKey` 归一塞进 3x3，超过 9 的槽位直接被丢掉；
+改成「跨度 ≤ 9 用网格，否则按 key 升序平铺 + `extra.keys` 记原槽位」，`build` 侧对带 `keys` 的
+也保位（`keepHoles`），否则空槽会让 `ins` 与 `keys` 错位。
+
+### 33.4 代码
+
+- `packages/gtnh-data/tools/jmx/src/ProbeScan2.java`（`sb.setLength(0)`，只打印真有容器字段的类）、
+  `DumpMods35.java`（本批最终 dumper，含 `speciesJson`/`fluidJson`）。
+- 数据：`data/raw/gtnh-2.9.0-server/mod-recipes-batch3.jsonl`（382 行）→ `data/recipes/mod-recipes.json` **8906 条 / 17 个 mod**。
+- 单测：gtnh-data `test/mod-recipes.test.js` 加 2 条（火箭 32 + 培养器/突变 190），fork 加 1 条；
+  全仓 **205 测试**（gtnh-data 62 / fork 88 / chunk 7 / protocol-fml 48）。

@@ -211,8 +211,8 @@ gtnhFlag  : u8                  // 恒等于 count（x1→01, x2→02, x64→40�
 | 动作层（挖掘 / 攻击 / 使用 / 合成 / 熔炉 / 丢弃 / 吃） | ✅ |
 | M4.5 vendored fork | 🚧 登录→生成→世界→物理→挖掘→背包→窗口→机器 GUI→动作层全通（生存挖掘/攻击/用物品已验） |
 
-**测试：全仓 202 个**（gtnh-data 60 / prismarine-chunk-1.7 7 / protocol-fml 48 /
-mineflayer-fork 87），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
+**测试：全仓 205 个**（gtnh-data 62 / prismarine-chunk-1.7 7 / protocol-fml 48 /
+mineflayer-fork 88），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
 能力等价地搬进了 fork（physics-tick 13 / blockshape 6 / chat 6 / support-feature 3 / inventory 5 / window 6）。
 
 ## 6. 冒烟工具
@@ -245,10 +245,10 @@ npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数�
 
 ## 7. 还差什么 / 下一步候选
 
-1. **NEI 其它 handler**：矿辞 + 原版合成/熔炉 + GT 的 175689 条 RecipeMap + 十五个 mod 的 8524 条配方已导出。2026-11-26 第二批：Avaritia 极值合成 135（9x9 网格）/ HarvestCraft 切菜板 51·烹饪锅 63·陷阱 4（带权重）/ WitchingGadgets 地狱高炉 51·纺车 5 / Et Futurum 锻造台 9，共 318 条（见 FINDINGS §32，方法：`ProbeScan1` 扫 99 个含 nei 的 jar）。
+1. **NEI 其它 handler**：矿辞 + 原版合成/熔炉 + GT 的 175689 条 RecipeMap + 十七个 mod 的 8906 条配方已导出。2026-11-26 第二批：Avaritia 极值合成 135（9x9 网格）/ HarvestCraft 切菜板 51·烹饪锅 63·陷阱 4（带权重）/ WitchingGadgets 地狱高炉 51·纺车 5 / Et Futurum 锻造台 9，共 318 条（见 FINDINGS §32）；第三批：GalaxySpace 火箭 32（T1..T8 各 4，材料 19–53 格）、Binnie 培养器 160、蜜蜂突变 153、花突变 37，共 382 条，物种用 `{species}` 表示（见 FINDINGS §33）。
    IC2 与 AE2 研磨机的 0 条是 GTNH 真的清空了（§24）；单例列表与探测方法见 §25；TConstruct 的熔炼温度/燃料/工具材料见 §27。
-   **还没覆盖**（下一步候选）：gendustry（配方走 `net.bdew.lib.recipes` XML loader，无静态表）、binnie-mods / NEIAddons 的蜜蜂与树、cropsnh 作物、vendingmachine 交易、enhancedlootbags 掉落表、OpenComputers、GalaxySpace、TwilightForest、BetterQuesting。
-   （`docs/FINDINGS.md` §21/§22/§23/§32）。
+   **还没覆盖**（下一步候选）：gendustry（配方走 `net.bdew.lib.recipes` XML loader，无静态表；`EnumMutationSetting` 只是配置）、cropsnh 作物（只有机器 ItemList，无配方表）、vendingmachine 交易（`NeiRecipeCache` 为空，数据在 `TradeDatabase` 实例）、enhancedlootbags 掉落表、OpenComputers、TwilightForest、BetterQuesting、NEIAddons 的树苗/蜜蜂。`binnie` 的 ExtraTrees 未做（只有蜜蜂/花突变与培养器）。
+   （`docs/FINDINGS.md` §21/§22/§23/§32/§33）。
 2. ~~MUI2 未解部分~~：已解——`auto_sync:<panel>:<n>` 是 MUI2
    `WidgetTree.collectSyncValues` 给「widget 自带 value」自动注册的 key；合金炉的 `:0`
    就是进度条（`GTProgressWidget.value(new DoubleSyncValue(this::getAsDouble))`，

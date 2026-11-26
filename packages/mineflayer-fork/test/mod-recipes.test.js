@@ -10,7 +10,7 @@ test('mod 配方：挂载后在 bot 上可查询', () => {
   attachRecipes(bot)
   const summary = bot.modRecipeSummary()
   assert.ok(summary.total > 5000)
-  assert.deepStrictEqual(bot.modRecipeMods(), ['ae2', 'avaritia', 'bloodmagic', 'botania', 'enderio', 'etfuturum', 'forestry', 'galacticraft', 'harvestcraft', 'ic2', 'railcraft', 'tconstruct', 'thaumcraft', 'witchery', 'witchinggadgets'])
+  assert.deepStrictEqual(bot.modRecipeMods(), ['ae2', 'avaritia', 'binnie', 'bloodmagic', 'botania', 'enderio', 'etfuturum', 'forestry', 'galacticraft', 'galaxyspace', 'harvestcraft', 'ic2', 'railcraft', 'tconstruct', 'thaumcraft', 'witchery', 'witchinggadgets'])
   assert.ok(bot.modRecipeKinds('botania').includes('rune_altar'))
 })
 
@@ -63,6 +63,23 @@ test('mod 配方：新一批 mod（Avaritia / HarvestCraft / WitchingGadgets / E
   assert.strictEqual(book.forKind('infernal_blast_furnace').length, 51)
   assert.strictEqual(book.forKind('spinning_wheel').length, 5)
   assert.strictEqual(book.forKind('smithing_table').length, 9)
+})
+
+test('mod 配方：第三批（GalaxySpace 火箭 / Binnie 突变）', () => {
+  const bot = makeBot()
+  attachRecipes(bot)
+  const book = bot.modRecipeBook()
+  assert.strictEqual(book.forKind('rocket').length, 32)
+  assert.strictEqual(book.forKind('incubator').length, 160)
+  assert.strictEqual(book.forKind('bee_mutation').length, 153)
+  assert.strictEqual(book.forKind('flower_mutation').length, 37)
+  const bee = bot.modRecipesForSpecies
+    ? bot.modRecipesForSpecies('Arid')
+    : book.forKind('bee_mutation').filter((r) => r.out[0].species === 'Arid')
+  assert.ok(bee.length >= 1)
+  assert.strictEqual(bee[0].ins.length, 2)
+  // 物种没有物品 id，不能混进按产物反查的索引
+  assert.strictEqual(book.byOutput['undefined:0'], undefined)
 })
 
 test('mod 配方：不污染 mineflayer 自己的 recipesFor 语义', () => {

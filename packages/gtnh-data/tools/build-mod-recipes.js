@@ -44,6 +44,8 @@ function fixId (st) {
 
 const isStack = (x) => x && typeof x === 'object' && typeof x.id === 'number'
 const isOre = (x) => x && typeof x === 'object' && (typeof x.ore === 'string' || Array.isArray(x.ores))
+// 遗传突变（蜜蜂/花）的产物是物种，不是物品：{species:'forestry.speciesX'}
+const isSpecies = (x) => x && typeof x === 'object' && typeof x.species === 'string'
 
 // 把任意形状的「一格」归一成备选数组
 function asAlternatives (cell) {
@@ -58,6 +60,7 @@ function asAlternatives (cell) {
     const names = Array.isArray(cell.ores) ? cell.ores : [cell.ore]
     return names.map((n) => ({ ore: n }))
   }
+  if (isSpecies(cell)) return [{ species: cell.species }]
   return []
 }
 
@@ -83,7 +86,9 @@ function normalize (r, legacyFlat) {
   }
   // 带网格尺寸的配方（Avaritia 9x9）保留空格，位置就是布局；其余去掉完全空的格子
   const hasGrid = extra && typeof extra.w === 'number' && typeof extra.h === 'number'
-  if (!hasGrid) cells = cells.filter((c) => c.length > 0)
+  // 保位：网格布局按 w*h 对齐；平铺但有原槽位号（extra.keys）时也要对齐，否则空槽会错位
+  const keepHoles = hasGrid || (extra && Array.isArray(extra.keys))
+  if (!keepHoles) cells = cells.filter((c) => c.length > 0)
   cells = cells.map((c) => c.map(fixId))
   let outArr
   if (Array.isArray(r.out) && r.out.some(isWeighted)) {
@@ -107,7 +112,7 @@ function normalize (r, legacyFlat) {
 
 // 多份 dump 会互相重复（例如 mods4 又带了蒸馏/坩埚/纺车）。只做**跨文件**去重：
 // 同一文件内部即使完全一样也保留（那可能是 mod 真的注册了两次）。
-const FRESH_FILES = ['mod-recipes-mods.jsonl', 'mod-recipes-mods2.jsonl', 'mod-recipes-mods3.jsonl', 'mod-recipes-mods4.jsonl', 'mod-recipes-mods5.jsonl', 'mod-recipes-mods6.jsonl', 'mod-recipes-batch2.jsonl']
+const FRESH_FILES = ['mod-recipes-mods.jsonl', 'mod-recipes-mods2.jsonl', 'mod-recipes-mods3.jsonl', 'mod-recipes-mods4.jsonl', 'mod-recipes-mods5.jsonl', 'mod-recipes-mods6.jsonl', 'mod-recipes-batch2.jsonl', 'mod-recipes-batch3.jsonl']
 const seenFresh = new Set()
 const fresh = []
 for (const f of FRESH_FILES) {
