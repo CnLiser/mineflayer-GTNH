@@ -66,7 +66,15 @@ const fail = (msg) => { console.error('✗', msg); process.exit(1) }
   console.log(`${peak > 3 && moved > 1 ? '✓' : '✗'} 走路：峰值 ${peak.toFixed(2)} 格/秒，位移 ${moved.toFixed(2)} 格`)
   if (peak < 3) fail('走路速度不对（<3 格/秒）')
 
-  const target = bot.blockAt(bot.entity.position.floored().offset(0, -1, 0))
+  // 走路之后玩家可能还在下落，脚下那一格经常是空气；空气上 dig 会一直挂着等 blockUpdate。
+  // 先等落地，再在脚下附近找一格真的方块。
+  for (let i = 0; i < 30 && !bot.entity.onGround; i++) await sleep(100)
+  let target = null
+  for (const [dx, dz] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) {
+    const b = bot.blockAt(bot.entity.position.floored().offset(dx, -1, dz))
+    if (b && b.name !== 'air' && b.name !== 'cave_air') { target = b; break }
+  }
+  if (!target) fail('脚下找不到可挖的方块（区块没加载？）')
   const t0 = Date.now()
   await Promise.race([
     bot.dig(target),
