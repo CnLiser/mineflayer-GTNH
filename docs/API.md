@@ -208,6 +208,22 @@ const ok = await bot.goto(new Vec3(x, y, z), { jump: false })   // 不跳（默�
 不要用 `bot.lookAt()` 改朝向——1.7 的 physics 用 `(sin(yaw), cos(yaw))` 当前向，
 `followPath` 里直接写 `bot.entity.yaw = atan2(dx, dz)`。
 
+### 6.2 挖矿循环
+
+把「找矿 → 走过去 → 挖掉 → 捡掉落物」串成一句。方块名可以带 `minecraft:` 前缀，也可以不带
+（GTNH 的注册名本身不带前缀）。
+
+```js
+const mined = await bot.mineNearby('coal_ore', { count: 4, radius: 16 })
+const mined = await bot.mineNearby(['gregtech:gt.blockores', 'minecraft:iron_ore'], { count: 8 })
+await bot.mineBlock(someBlock)        // 挖指定的一块
+await bot.collectDrops({ collectMs: 4000 })
+```
+
+`count` 是目标块数，`radius` 是搜索半径（格），`dig` 默认 true（走过去时允许挖穿挡路的方块），
+`collect` 默认 true。挖不到（够不着、没工具、被基岩挡住）就跳过那一块继续找下一块，返回值是实际挖掉的块。
+生存模式需要手里有对应的镐，`bot.canDigBlock(block)` 会先判一次。
+
 ## 7. 聊天
 
 ```js
