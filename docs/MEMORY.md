@@ -181,7 +181,8 @@ gtnhFlag  : u8                  // 恒等于 count（x1→01, x2→02, x64→40�
 - 修法：fork 的 `lib/gtnh/modularui.js` 里 `attachModularUI(bot)`；
   窗口层在 `window_items` 落到未知 id 时按 `slotCount - 36` 推算玩家背包起点开窗。
 - 控件流：`PacketSyncHandler` = `varint networkId + string panel + string key + bool action + buffer value`，
-  值以 `varint tag` 开头（`SYNC_VALUE=0` / `SYNC_ITEM=0`），bool 1 字节、int varint、long 8 字节 BE、
+  值以 `varint tag` 开头（`SYNC_VALUE=0` / `SYNC_ITEM=0`），bool 1 字节、int varint、
+  8 字节 BE 分两种：`auto_sync:*` 是 `DoubleSyncValue`（进度，空转 NaN）、能量类是 long、
   物品槽 `bool + ItemStack + bool + bool`。实测能解出 `powerSwitch` / `hasError` / `powerfail` /
   `ghostCircuitIndex` / `player:0` / `auto_sync:*`。
 - MUI2 容器的 transaction **恒回 accepted=false**，但点击照常执行 → 不能当失败处理。
@@ -210,7 +211,7 @@ gtnhFlag  : u8                  // 恒等于 count（x1→01, x2→02, x64→40�
 | 动作层（挖掘 / 攻击 / 使用 / 合成 / 熔炉 / 丢弃 / 吃） | ✅ |
 | M4.5 vendored fork | 🚧 登录→生成→世界→物理→挖掘→背包→窗口→机器 GUI→动作层全通（生存挖掘/攻击/用物品已验） |
 
-**测试：全仓 188 个**（gtnh-data 56 / prismarine-chunk-1.7 7 / protocol-fml 46 /
+**测试：全仓 190 个**（gtnh-data 56 / prismarine-chunk-1.7 7 / protocol-fml 48 /
 mineflayer-fork 79），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
 能力等价地搬进了 fork（physics-tick 13 / chat 6 / support-feature 3 / inventory 5 / window 6）。
 
@@ -246,8 +247,15 @@ npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数�
 
 1. **NEI 其它 handler**：矿辞 + 原版合成/熔炉 + GT 的 175689 条 RecipeMap + 十一个 mod 的 8206 条配方（+ Galacticraft 14 / Witchery 85：蒸馏·坩埚·纺车·火盆·酿造仪式 / TConstruct 浇筑台 1088·浇筑盆 16·工具组装 53）已导出；IC2 与 AE2 研磨机的 0 条是 GTNH 真的清空了（见 FINDINGS §24）；单例列表与探测方法见 §25；TConstruct 的熔炼温度/燃料/工具材料见 §27
    （`docs/FINDINGS.md` §21/§22/§23）。
-2. **MUI2 未解部分**：`progress` / `energy` 只在变化时推（机器空转收不到样本）；
-   `auto_sync:…:0` 那个 8 字节值（`fff8000000000000`）语义未定。
+2. ~~MUI2 未解部分~~：已解——`auto_sync:<panel>:<n>` 是 MUI2
+   `WidgetTree.collectSyncValues` 给「widget 自带 value」自动注册的 key；合金炉的 `:0`
+   就是进度条（`GTProgressWidget.value(new DoubleSyncValue(this::getAsDouble))`，
+   取 `mProgresstime / mMaxProgresstime`，空转 0/0 = NaN，即 `fff8000000000000`）。
+   `NaN != NaN` 让它空转时每 tick 都算「变了」，所以进度**不是**只在变化时推
+   （实测约 21 条/秒）；真正按变化推的是能量这类整数。要一份全量快照就对同一方块
+   再右键一次：服务端重发 `openGui` + 全部 key（不发 `reopenGui` 包）。
+   `decodeSyncValue` 现在按 key 把 8 字节分成 double（auto_sync）与 long（能量），
+   详见 FINDINGS §17.4.1。
 3. ~~生存模式挖掘~~：已验（`action-smoke`：沙子 750ms→实测 1135ms）。
 4. **物理细节**：半砖/台阶按整块算，一格坎必须跳（1.7 数据没有真实碰撞盒高度）。
 5. ~~动作补齐~~：使用物品 / 攻击 / 合成 / 熔炉 / 丢弃 / 吃 均已验（`action-smoke` / `craft-smoke` / `furnace-smoke` / `drop-eat-smoke`）。

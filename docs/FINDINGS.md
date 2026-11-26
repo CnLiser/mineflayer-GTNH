@@ -861,8 +861,16 @@ buffer packet              // SyncHandler 自己写的值
 | --- | --- | --- |
 | bool | 1 字节 | `powerSwitch:0` → `00 01` = true |
 | int | varint（负数按 32 位补码） | `ghostCircuitIndex:0` → `00 ff ff ff ff 0f` = -1 |
-| long | 8 字节大端 | `auto_sync:…:0` → `00 ff f8 00 …`（疑似哨兵值） |
+| double | 8 字节大端 IEEE-754 | `auto_sync:…:0` → `00 ff f8 00 …` = **NaN**（进度条空转） |
+| long | 8 字节大端补码 | 能量/数量类显式 key，如 `energy:0` |
 | 物品槽 | `bool readOnly + ItemStack + bool enabled + bool false` | `player:0` → questbook x1 |
+
+`long` 与 `double` 都是 8 字节大端，线上没有类型标记：目前按 key 区分——
+`auto_sync:<panel>:<n>` 是 MUI2 给「widget 自带的 value」自动注册的，
+GT 的进度条是 `new DoubleSyncValue(this::getAsDouble)`（`MTEBasicMachineBaseGui
+.createProgressBar`），所以 auto_sync 的 8 字节按 double 解；显式
+`Energy`/`Amount`/`Long` 键仍按 long 解。`decodeSyncValue` 里对 auto_sync
+只在「NaN 或值域 [0,1]」时判 double，其余落 long，认错的极端值可拿原始字节复核。
 
 物品仍是 `id(i32 BE) + count(u8) + damage(i16 BE) + nbtLen(i16 BE) + nbt + 1 字节`
 ——最后那个字节在抓包里**恒等于 count**（x1→01、x2→02、x64→40），暂按不透明字段保留。
@@ -870,7 +878,7 @@ buffer packet              // SyncHandler 自己写的值
 ### 4. 落地
 
 - `packages/protocol-fml/src/gtnh/modularui.js`：`parsePacket` / `decodeSyncValue` /
-  `collectSync`（纯函数，8 个单测用的是真实抓包帧）。
+  `collectSync`（纯函数，10 个单测用的是真实抓包帧）。
 - `createFmlClient` 在 `custom_payload` 上识别 `modularui2`，解好后发 `gtnh_mui2`。
 - fork 的 `lib/gtnh/modularui.js` 增加 `attachModularUI(bot)`：`openGui` 记住
   `windowId/factory/方块坐标`（窗口层据此**立刻**开窗，不再等 150ms 兜底），
@@ -894,14 +902,37 @@ panel basicmachine.alloysmelter.tier.02 (10 keys)
   powerfail:0                     bool  false
   ghostCircuitIndex:0             int   -1
   hasError:0                      bool  false
-  auto_sync:…:0                   long  -2251799813685248
+  auto_sync:…:0                   double NaN（机器空转，进度 0/0）
   auto_sync:…:2                   item  item 6241 x2 dmg=0
   player:0                        item  item 6241 x1 dmg=0
 ✓ ModularUI2 控件流解出 10 个值，powerSwitch=true
 ```
 
-还没解出来的：`progress` / `energy` 这类值只在变化时推（机器空转时收不到），
-要等机器真跑起来才有样本；`auto_sync` 那个 8 字节值的语义也还没定。
+### 5. `auto_sync` 的语义与「只在变化时推」的修正
+
+`auto_sync:<panel>:<n>` 是 MUI2 `WidgetTree.collectSyncValues` 给面板里
+**没有显式注册**的同步 widget 自动起的 key（`AUTO_SYNC_PREFIX = "auto_sync:"`，
+`n` 是该面板 BFS 顺序里的第几个）。合金炉的 `:0` 就是进度条：
+
+```java
+// MTEBasicMachineBaseGui.createProgressBar
+new GTProgressWidget().value(new DoubleSyncValue(this::getAsDouble))
+// lambda$createProgressBar$0: (double) mProgresstime / (double) mMaxProgresstime
+```
+
+机器空转时 `mMaxProgresstime == 0`，`0.0 / 0.0 = NaN`，位模式正是
+`ff f8 00 00 00 00 00 00`——之前当成 long 解出来的 -2251799813685248 是误读。
+
+实测还推翻了「progress 只在变化时推、空转收不到」：`DoubleSyncValue
+.updateCacheFromSource` 用 `dcmpl` 比较（`getter.getAsDouble() != cache`），
+NaN 与 NaN 比也不相等，所以空转时它**每 tick 都算变了**。
+开一次 GUI 三秒收到 70 条 `syncHandler`（约 21 条/秒，几乎全是这条 NaN 进度）。
+
+真正「只在变化时推」的是能量这类整数。要拿全量快照，**对同一方块再右键一次**
+即可：服务端会重发 `openGui` 并重新推全部 key（实测第二次点击同样收到
+`openGui x1` + 10 个 key + 持续进度流；服务器不发 `reopenGui` 包）。
+`bot.machineState` 只保留每个 key 的最后一值，所以重开后再读 `panelState()`
+就是一份完整快照。
 
 ## 十八、2026-11-25：动作层（生存挖掘 / 攻击 / 使用物品）与两个线格式修正
 

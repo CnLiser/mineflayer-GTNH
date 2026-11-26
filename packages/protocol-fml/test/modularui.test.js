@@ -58,12 +58,30 @@ test('syncHandler: 物品槽（questbook）', () => {
   assert.strictEqual(value.value.item.extra, 1) // 实测等于 count
 })
 
-test('syncHandler: 8 字节 long', () => {
+test('syncHandler: auto_sync 是 double（GT 进度条，空转 0/0 = NaN）', () => {
   const msg = parsePacket(Buffer.from(SYNC_AUTOSYNC, 'hex'))
   const value = decodeSyncValue(msg.key, msg.data)
   assert.strictEqual(value.tag, 0)
-  assert.strictEqual(value.kind, 'long')
-  assert.strictEqual(typeof value.value, 'number')
+  assert.strictEqual(value.kind, 'double')
+  assert.ok(Number.isNaN(value.value))
+})
+
+test('syncHandler: auto_sync 在跑机器上是 [0,1] 的 double', () => {
+  const buf = Buffer.from('00' + '0000000000000000', 'hex') // tag 0 + double 0.0
+  const value = decodeSyncValue('auto_sync:some.panel:0', buf)
+  assert.deepStrictEqual(value, { tag: 0, kind: 'double', value: 0 })
+
+  const half = Buffer.alloc(9)
+  half.writeUInt8(0, 0)
+  half.writeDoubleBE(0.5, 1)
+  assert.deepStrictEqual(decodeSyncValue('auto_sync:some.panel:0', half), { tag: 0, kind: 'double', value: 0.5 })
+})
+
+test('syncHandler: 8 字节 long（能量）', () => {
+  const buf = Buffer.alloc(9)
+  buf.writeUInt8(0, 0)
+  buf.writeBigInt64BE(8192n, 1)
+  assert.deepStrictEqual(decodeSyncValue('energy:0', buf), { tag: 0, kind: 'long', value: 8192 })
 })
 
 test('collectSync: 按面板聚合同一批同步值', () => {

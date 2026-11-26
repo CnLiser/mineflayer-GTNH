@@ -125,7 +125,8 @@ function parsePacket (buf) {
 // tag=0 表示「值同步」，之后是 handler.write() 的内容：
 //   BooleanSyncValue -> 1 字节布尔
 //   IntSyncValue     -> varint（负数按 32 位补码展开，-1 为 ff ff ff ff 0f）
-//   LongSyncValue    -> 8 字节大端
+//   LongSyncValue    -> 8 字节大端（writeLong）
+//   DoubleSyncValue  -> 8 字节大端 IEEE-754（writeDouble；GT 进度条用它）
 //   ItemSlotSH       -> [bool readOnly][ItemStack][bool enabled][bool false]
 // MUI2 用 ASM 把 PacketBuffer.writeByte 改成 writeVarInt，所以物品数量是 varint。
 //
@@ -173,8 +174,19 @@ function decodeSyncValue (key, buf) {
   }
 
   if (rest.length === 1) return { tag: tag.value, kind: 'bool', value: rest[0] === 1 }
-  if (rest.length === 8 && /auto_sync|Energy|Amount|Long/i.test(key)) {
-    return { tag: tag.value, kind: 'long', value: readLongBE(rest, 0) }
+  if (rest.length === 8) {
+    // MUI2 给「widget 自己带的值」自动注册 `auto_sync:<panel>:<n>`，长度上分不出
+    // long / double（两边都是 8 字节大端）。GT 的进度条是
+    // `new DoubleSyncValue(this::getAsDouble)`，空转时 0/0 = NaN —— 也就是
+    // `ff f8 00 …` 那个「疑似哨兵」。进度值域是 [0,1] 或 NaN，据此把 double
+    // 和 long（能量、数量）分开；认错的 8 字节值仍可用 `readDoubleBE` 复核。
+    const asDouble = rest.readDoubleBE(0)
+    if (/^auto_sync:/i.test(key) && (Number.isNaN(asDouble) || (asDouble >= 0 && asDouble <= 1))) {
+      return { tag: tag.value, kind: 'double', value: asDouble }
+    }
+    if (/auto_sync|Energy|Amount|Long/i.test(key)) {
+      return { tag: tag.value, kind: 'long', value: readLongBE(rest, 0) }
+    }
   }
   if (rest.length <= 5) {
     // 5 字节以内既可能是 varint 整数，也可能是 1 字节布尔 + 填充；按 varint 解释

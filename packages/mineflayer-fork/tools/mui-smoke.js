@@ -26,6 +26,7 @@ function describe (value) {
     case 'bool': return String(value.value)
     case 'int': return String(value.value)
     case 'long': return String(value.value)
+    case 'double': return Number.isNaN(value.value) ? 'NaN（机器空转，进度 0/0）' : value.value.toFixed(3)
     case 'item': {
       const it = value.value.item
       return it.blockId < 0 ? 'empty' : `item ${it.blockId} x${it.itemCount} dmg=${it.itemDamage}`
