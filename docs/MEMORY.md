@@ -77,7 +77,7 @@ MC 1.7.10 + Forge 10.13.4.1614）的 mineflayer**。用户原话（m00060）：
 
 | 项 | 值 |
 | --- | --- |
-| 工作区 | `G:\java\minecraft\mineflayer-GTNH`（**不是 git 仓库**，无 .git） |
+| 工作区 | `G:\java\minecraft\mineflayer-GTNH`（git 仓库，`main`，remote `CnLiser/mineflayer-GTNH`；`data/`、`.probe/`、`node_modules`、raw dump 已忽略） |
 | 上游源码 | `G:\java\minecraft\node-minecraft-protocol`（v1.68.0）、`G:\java\minecraft\mineflayer`（v4.39.0） |
 | 整合包（客户端） | `G:\mc\PrismLauncher-Windows-MinGW-w64-Portable-10.0.5\instances\GT_New_Horizons_2.9.0_Java_17-26_bak` |
 | 本地服务端 | `G:\mc\GTNH2.9.0-server`（`server-port=54615`、`online-mode=false`、`level-type=rwg`、`spawn-protection=1`） |

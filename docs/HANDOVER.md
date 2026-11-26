@@ -108,7 +108,9 @@ java -cp /g/java/minecraft/mineflayer-GTNH/.probe/jmx Attach1 $PID "G:/.../build
 
 - `.probe/` 有 **347 个脚本**，全是历史排查，命名混乱 —— 只按需 `grep`，不要通读；
 - `node_modules/`、上游 `../mineflayer`、`../node-minecraft-protocol`（只读参考，未改）；
-- 工作区**不是 git 仓库**（没有 `git diff` 可用，改动请自己记录）。
+- **git 仓库已初始化**（2026-11-26，`main` 分支，411 个文件 / 12MB）：remote = `https://github.com/CnLiser/mineflayer-GTNH.git`。
+  `node_modules/`、`/data/`、`/.probe/`、`packages/gtnh-data/data/raw/`、`packages/protocol-fml/data/raw/*.jsonl` 已忽略。
+  流程：`git diff` 看改动 → 小步提交；**别把大 dump 或 `.probe` 提交进来**。
 
 ## 8. 交接检查表（改完东西再走）
 
