@@ -183,6 +183,22 @@ bot.on('physicsTick', () => {})
 碰撞盒：`lib/gtnh/blockshape.js` 的 `blockShapes(block)` 返回相对 AABB 数组
 （半砖 0.5、台阶 0.5/1.0、栅栏 1.5、地毯 0.0625…，见 FINDINGS §11.5）。
 
+### 6.1 寻路（实验性）
+
+1.7.10 上跑不了 `mineflayer-pathfinder`（它依赖 1.8+ 的方块形状），这里是一个最小实现：
+整数格点上的 A*（平走 / 1 格上台阶 / 最多 4 格下落），执行交给现有 physics。
+
+```js
+const path = bot.findPathTo(new Vec3(x, y, z), { maxNodes: 6000 })  // [{x,y,z}, ...] 或 null
+const ok = await bot.goto(new Vec3(x, y, z), { timeoutMs: 30000 })  // 走过去，返回是否到达
+```
+
+`bot.solidAt(x, y, z)` 是底层判定（没加载的区块按实心处理，宁可绕路）。
+两个注意点：半砖/台阶在规划时按整块算（physics 的 stepUp 会处理 0.5 格差）；
+`followPath` 不做避障重规划，卡住就返回 false，调用方自己决定下一步。
+不要用 `bot.lookAt()` 改朝向——1.7 的 physics 用 `(sin(yaw), cos(yaw))` 当前向，
+`followPath` 里直接写 `bot.entity.yaw = atan2(dx, dz)`。
+
 ## 7. 聊天
 
 ```js

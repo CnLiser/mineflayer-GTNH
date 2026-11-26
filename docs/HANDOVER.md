@@ -9,14 +9,14 @@
 ## 0. 一句话现状
 
 能连 **GTNH 2.9.0（MC 1.7.10）** 的 mineflayer fork：连服 → 区块/世界 → 物理 → 挖/放/攻击/用物品/吃/丢弃 → 箱子/工作台/熔炉/GT 机器 GUI → 合成/熔炉 → 配方数据（矿辞 + 原版 + GT 175689 + 17 mod 8906 + TiC 静态表 + 实体 148）→ **GT 压模机全链路**（放机器 → 太阳能供电 → 投料 → 电压校验 → 取件）。
-**216 个测试全过**，13 个冒烟脚本（12 联机 + 1 离线）。
+**222 个测试全过**，13 个冒烟脚本（12 联机 + 1 离线）。
 
 ## 1. 十分钟自检（照抄）
 
 ```bash
 cd G:/java/minecraft/mineflayer-GTNH
 
-npm test                                   # 期望 4 个 workspace 全 fail 0，共 216 个
+npm test                                   # 期望 4 个 workspace 全 fail 0，共 222 个
 
 # 本地 GTNH 服务端是否在跑（不在就启动，见 §5）
 node packages/protocol-fml/tools/ping.js 127.0.0.1 54615   # 期望 GT:New Horizons 2.9.0 / 296 mods
@@ -62,7 +62,7 @@ packages/
 │   └── tools/jmx/         # Java agent 探针（见 §4）
 ├── mineflayer-fork/       # **主力**：vendored mineflayer 4.39 + lib/gtnh/* 补丁
 │   ├── lib/loader.js      # 建连、注册表注入、各 attach* 挂载点
-│   ├── lib/gtnh/{world,physics,physics-tick,blockshape,entities,items,actions,modularui,recipes,tconstruct,smeltery,gtmachine,chat,mods,reconnect}.js
+│   ├── lib/gtnh/{world,physics,physics-tick,blockshape,entities,items,actions,modularui,recipes,tconstruct,smeltery,gtmachine,chat,mods,reconnect,pathfinder}.js
 │   └── tools/*.js         # 13 个冒烟脚本（12 联机 + recipes-smoke 离线）
 ```
 
