@@ -120,13 +120,15 @@ bot.gtnhRecipesFor(265)                 // 原版合成
 bot.gtRecipesForOutput(7639, 2610)      // GT 机器配方（按产物）
 bot.tconstructMaterial('manyullyn')     // TiC 材料（耐久/速度/采掘等级）
 bot.modRecipesFor(6079)                 // 非 GT mod 配方（Botania 符文等）
+bot.modRecipesForSpecies('Arid')        // 蜜蜂/花突变（Binnie，产物或亲本命中）
 ```
 
 ## 已知限制
 
-- **物理**：半砖/台阶按整块算（1.7 数据没有真实碰撞盒高度），一格坎要跳；
+- **物理**：碰撞盒靠 `lib/gtnh/blockshape.js` 按注册名 + metadata 补（半砖 0.5 / 台阶 0.5 或上半 /
+  栅栏·墙 1.5 / 地毯 1/16 / 雪层按层数）；没进表或形状特殊的方块（活板门、楼梯转角）仍按整块；
 - **实体**：只认原版 46 种 mob，mod 实体名对不上；
-- **MUI2**：`progress` / `energy` 只在变化时推，机器空转收不到样本；
+- **MUI2**：进度条值在机器空转时是 `NaN`（0/0），按 `NaN != NaN` 每 tick 都推；要全量快照就对同一方块再右键一次；
 - **真服（online-mode）**：协议上支持（`encryption_begin` 已接），但只用离线服验证过；
 - **动作**：射箭 / 钓鱼未做。
 

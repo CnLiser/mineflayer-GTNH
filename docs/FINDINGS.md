@@ -2000,5 +2000,14 @@ T1 有 19 格材料、T8 有 53 格。第一版按 `minKey` 归一塞进 3x3，�
 - `packages/gtnh-data/tools/jmx/src/ProbeScan2.java`（`sb.setLength(0)`，只打印真有容器字段的类）、
   `DumpMods35.java`（本批最终 dumper，含 `speciesJson`/`fluidJson`）。
 - 数据：`data/raw/gtnh-2.9.0-server/mod-recipes-batch3.jsonl`（382 行）→ `data/recipes/mod-recipes.json` **8906 条 / 17 个 mod**。
-- 单测：gtnh-data `test/mod-recipes.test.js` 加 2 条（火箭 32 + 培养器/突变 190），fork 加 1 条；
+### 33.5 按物种查（没有物品 id 的配方怎么查）
+
+物种条目既没有 `id` 也不在 `byOutput` 索引里，所以加了两个入口：
+`ModRecipes.forSpecies(name)`（产物或亲本任一命中）与 `ModRecipes.species()`（产物侧物种名去重排序，
+144 个）；bot 侧是 `bot.modRecipesForSpecies(name)` / `bot.modRecipeSpecies()`。
+
+顺带修掉一个真 bug：`byOutput(undefined)` 原本会把所有物种条目都捞出来（`undefined !== undefined` 不成立，
+物种的 `o.id` 也是 undefined），现在 `byOutput` 对非数字 id 直接返回 `[]`。
+
+- 单测：gtnh-data `test/mod-recipes.test.js` 加 3 条（火箭 32 / 培养器/突变 190 / 按物种查），fork 的第三批用例并入物种断言；
   全仓 **205 测试**（gtnh-data 62 / fork 88 / chunk 7 / protocol-fml 48）。

@@ -64,6 +64,10 @@ function attachRecipes (bot) {
   bot.modRecipesUsing = (id, metadata) => modBook().byInput(id, metadata)
   /** 某个矿辞名参与的配方 */
   bot.modRecipesByOre = (ore) => modBook().byOre(ore)
+  /** 某个物种（蜜蜂/花突变）参与的配方：产物或亲本命中都算 */
+  bot.modRecipesForSpecies = (name) => modBook().forSpecies(name)
+  /** 数据里出现过的物种名（产物侧） */
+  bot.modRecipeSpecies = () => modBook().species()
   bot.modRecipeKinds = (mod) => modBook().kinds(mod)
   bot.modRecipeMods = () => modBook().mods()
   bot.modRecipeSummary = () => modBook().summary()

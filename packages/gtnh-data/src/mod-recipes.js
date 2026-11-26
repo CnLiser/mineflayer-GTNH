@@ -32,6 +32,8 @@ class ModRecipes {
 
   /** 产出某物品的配方（meta 省略时匹配任意 meta）。 */
   byOutput (id, meta) {
+    // 物种条目没有数字 id，别让 byOutput(undefined) 把它们全捞出来
+    if (typeof id !== 'number') return []
     const want = meta == null ? null : meta
     const out = []
     for (const r of this.recipes) {
@@ -80,6 +82,25 @@ class ModRecipes {
   byOre (oreName) {
     if (!this._byOre) this._buildInputIndex()
     return (this._byOre.get(oreName) || []).slice()
+  }
+
+  /**
+   * 物种名参与的配方（Binnie/Forestry 的蜜蜂、花、树突变）。
+   * 这些配方的产物和输入都是 {@link species}，没有物品 id，所以 byOutput/byInput 查不到。
+   */
+  forSpecies (name) {
+    return this.recipes.filter((r) => {
+      for (const o of r.out || []) if (o.species === name) return true
+      for (const cell of r.ins || []) for (const alt of cell) if (alt.species === name) return true
+      return false
+    })
+  }
+
+  /** 数据里出现过的所有物种名（产物侧，去重排序）。 */
+  species () {
+    const set = new Set()
+    for (const r of this.recipes) for (const o of r.out || []) if (o.species) set.add(o.species)
+    return [...set].sort()
   }
 
   forMod (mod) { return this.recipes.filter((r) => r.mod === mod) }

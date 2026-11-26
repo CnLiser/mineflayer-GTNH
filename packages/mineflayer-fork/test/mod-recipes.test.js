@@ -73,11 +73,16 @@ test('mod 配方：第三批（GalaxySpace 火箭 / Binnie 突变）', () => {
   assert.strictEqual(book.forKind('incubator').length, 160)
   assert.strictEqual(book.forKind('bee_mutation').length, 153)
   assert.strictEqual(book.forKind('flower_mutation').length, 37)
-  const bee = bot.modRecipesForSpecies
-    ? bot.modRecipesForSpecies('Arid')
-    : book.forKind('bee_mutation').filter((r) => r.out[0].species === 'Arid')
+  const bee = bot.modRecipesForSpecies('Arid')
   assert.ok(bee.length >= 1)
-  assert.strictEqual(bee[0].ins.length, 2)
+  assert.ok(bee.some((r) => r.out[0].species === 'Arid'))
+  assert.ok(bee.every((r) => r.kind === 'bee_mutation'))
+  // 亲本也能查
+  assert.ok(bot.modRecipesForSpecies('Meadows').some((r) => r.ins[0][0].species === 'Meadows'))
+  const species = bot.modRecipeSpecies()
+  assert.ok(species.length > 100 && species.includes('Arid'))
+  // 物种没有物品 id，按物品查不到
+  assert.strictEqual(book.byOutput(undefined).length, 0)
   // 物种没有物品 id，不能混进按产物反查的索引
   assert.strictEqual(book.byOutput['undefined:0'], undefined)
 })

@@ -287,6 +287,20 @@ test('mod-recipes：Binnie 培养器与蜜蜂/花突变', () => {
   assert.ok(bee.every((r) => r.ins.length === 2 && r.out[0].species && r.ins.every((c) => c[0].species)))
   assert.ok(bee.every((r) => typeof r.extra.chance === 'number' && r.extra.chance > 0))
   assert.strictEqual(book.forKind('flower_mutation').length, 37)
+
+  // 物种没有物品 id，按 byOutput/byInput 查不到，得走 forSpecies
+  assert.strictEqual(book.byOutput(undefined).length, 0)
+  const arid = book.forSpecies('Arid')
+  assert.ok(arid.length >= 1)
+  // Arid 既是某条突变的产物，也是别的突变的亲本
+  assert.ok(arid.some((r) => r.out[0].species === 'Arid' && r.kind === 'bee_mutation'))
+  assert.ok(arid.some((r) => r.ins.some((c) => c[0].species === 'Arid')))
+  const asInput = book.forSpecies('Meadows')
+  assert.ok(asInput.length >= 1)
+  assert.strictEqual(asInput[0].ins[0][0].species, 'Meadows')
+  const all = book.species()
+  assert.ok(all.length > 100, `物种总数应该上百（实际 ${all.length}）`)
+  assert.ok(all.includes('Arid') && all.includes('Cornflower'))
 })
 
 test('mod-recipes：Et Futurum 锻造台', () => {
