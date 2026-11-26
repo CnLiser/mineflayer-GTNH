@@ -22,7 +22,7 @@ const opt = (name, dflt) => {
 const vec = (s, dflt) => (s ? s.split(',').map(Number) : dflt)
 // Accept both "a,b,c" and "a b c".
 const tpAt = (opt('tp', '34.5,78,20.5').replace(/ /g, ',')).split(',').map(Number)
-const machine = (opt('machine', '33,78,19').replace(/ /g, ',')).split(',').map(Number)
+let machine = (opt('machine', '33,78,19').replace(/ /g, ',')).split(',').map(Number)
 const USER = opt('username', 'itemBot')
 const DELAY = Number(opt('delay', '600'))
 
@@ -93,6 +93,22 @@ async function reopen () {
 
 bot.once('spawn', async () => {
   await sleep(1500)
+  if (opt('auto')) {
+    // 自己搭场景：铺地面 → 放一台 LV 压模机 → 给背包一块铁锭
+    const scene = require('./scene')
+    const Item = require('../lib/gtnh/items')(bot)
+    const [ax, ay, az] = (opt('at', '60 80 60')).split(/[\s,]+/).map(Number)
+    const R = scene.rconAt(host)
+    await R([`op ${USER}`, `gamemode 1 ${USER}`])
+    await scene.prepareArena(R, { x: ax, y: ay, z: az, radius: 2, username: USER })
+    await scene.tpTo(R, USER, { x: ax + 0.5, y: ay + 1, z: az + 2.5 })
+    await scene.giveItem(bot, Item, { id: 3003, meta: 281, count: 1, slot: 40 })
+    await scene.placeAt(bot, scene.P(ax, ay, az), 1, { type: 3003, meta: 281 })
+    machine = [ax, ay + 1, az]
+    await bot.creative.setInventorySlot(36, new Item(7639, 8, 11019))
+    await sleep(500)
+    console.log('auto 场景就绪：机器', machine.join(' '), '背包已给铁锭')
+  }
   if (opt('tp')) {
     await rcon([`tp ${USER} ${tpAt.join(' ')}`], { host })
     await sleep(3000)
