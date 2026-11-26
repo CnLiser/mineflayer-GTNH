@@ -1,4 +1,5 @@
-> 权威记忆在场景记忆目录：`G:/deepseek/workbench/引擎数据/.dsh/场景记忆/我的世界/项目记忆/mineflayer-GTNH.md`（枢纽），同目录 `mineflayer-GTNH/` 下是 16 张 mod 卡片。本文是工程快照镜像。
+> mod 记忆在本仓库 `docs/memory/`（22 张卡片，与代码一起提交）；场景记忆目录
+> `G:/deepseek/workbench/引擎数据/.dsh/场景记忆/我的世界/项目记忆/mineflayer-GTNH.md` 是 DSH 环境里的活副本。本文是工程快照镜像。
 > **冷启动先读**：`docs/HANDOVER.md`（自检命令 / 现场状态 / 代码地图 / 扩展路径 / agent 速查 / 陷阱 Top10）。
 
 # 项目记忆（交接状态）
@@ -35,6 +36,12 @@
 | IC2 | [ic2](memory/ic2.md) | 机器配方几乎被清空（3 条） | → gregtech（替代） |
 | Galacticraft | [galacticraft](memory/galacticraft.md) | 电路/压缩 14 条 | — |
 | Witchery | [witchery](memory/witchery.md) | 蒸馏/坩埚/火盆/酿造 85 条 | — |
+| Avaritia | [avaritia](memory/avaritia.md) | 极值合成 135 条（9x9 网格） | → tconstruct |
+| HarvestCraft | [harvestcraft](memory/harvestcraft.md) | 切菜板/锅/陷阱 118 条（带权重） | → gregtech |
+| WitchingGadgets | [witchinggadgets](memory/witchinggadgets.md) | 地狱高炉 51 / 纺车 5 | → witchery |
+| Et Futurum | [etfuturum](memory/etfuturum.md) | 锻造台 9 条（copyNBT） | → gregtech |
+| GalaxySpace | [galaxyspace](memory/galaxyspace.md) | 火箭 32 条（T1..T8，19–53 格散列） | → galacticraft |
+| Binnie | [binnie](memory/binnie.md) | 培养器 160 / 蜜蜂突变 153 / 花突变 37 | → forestry |
 
 ### 关联图（谁依赖谁）
 

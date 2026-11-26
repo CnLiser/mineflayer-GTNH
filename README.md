@@ -27,7 +27,7 @@
 | 背包 | 46 槽（Backhand 副手）、4 字节物品 id + 尾字节、`window_click` 点击、光标同步 | ✅ |
 | 容器 | 箱子/工作台/熔炉/任意 mod 容器窗口；**GT 机器 GUI 走 ModularUI2 隐式开窗** | ✅ |
 | GT 机器 | 控件流解析（`powerSwitch`/`hasError`/`ghostCircuitIndex`…）、投料、取件、**压模机全链路** | ✅ |
-| 数据 | 矿辞 56279、原版合成 10233、熔炉 9683、**GT RecipeMap 175689**、11 个 mod 8206、TiC 静态表 | ✅ |
+| 数据 | 矿辞 56279、原版合成 10233、熔炉 9683、**GT RecipeMap 175689**、17 个 mod 8906、TiC 静态表、实体类型 148 | ✅ |
 
 ## 快速开始
 
@@ -95,7 +95,9 @@ archive/
 | --- | --- |
 | [`docs/HANDOVER.md`](docs/HANDOVER.md) | **冷启动 10 分钟**：自检命令 / 现场状态 / 代码地图 / 扩展路径 / agent 速查 / 陷阱 Top10 |
 | [`docs/MEMORY.md`](docs/MEMORY.md) | 工程快照：架构、补丁表、踩平的坑（现象→真因→修法）、里程碑、还差什么 |
-| [`docs/FINDINGS.md`](docs/FINDINGS.md) | **31 节实证记录**：每个协议格式的字节级论证、对照实验、死路 |
+| [`docs/FINDINGS.md`](docs/FINDINGS.md) | **34 节实证记录**：每个协议格式的字节级论证、对照实验、死路 |
+| [`docs/memory/`](docs/memory/) | **22 张 mod 卡片**：每个 mod 的 id / 操作路径 / 线格式 / 已实现 API / 坑 |
+| [`docs/API.md`](docs/API.md) | `bot.*` 扩展 API 速查（GTNH 加的那些方法） |
 | [`PLAN.md`](PLAN.md) | 路线：分层 T0–T4、里程碑 M0–M5、风险 |
 
 ## 数据从哪来
@@ -108,7 +110,7 @@ node packages/protocol-fml/tools/dump-registry.js 127.0.0.1 54615
 
 # 矿辞 / 原版合成 / 熔炉（Java agent 读服务端内存，见 docs/HANDOVER.md §5）
 npm --workspace gtnh-data run build-recipes
-npm --workspace gtnh-data run build-mod-recipes    # 11 个 mod 的 8206 条
+npm --workspace gtnh-data run build-mod-recipes    # 17 个 mod 的 8906 条
 npm --workspace gtnh-data run build-tconstruct     # TiC 熔炼/材料/燃料
 ```
 

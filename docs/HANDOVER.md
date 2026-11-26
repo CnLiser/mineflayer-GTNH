@@ -1,14 +1,15 @@
 # 接手手册（冷启动 10 分钟）
 
-> 给「刚开的新会话」看：先读这一页，再按需读 `docs/MEMORY.md`（工程快照）、`docs/FINDINGS.md`（31 节实证）、`PLAN.md`（路线）。
-> 完整 mod 记忆在场景记忆目录：`G:/deepseek/workbench/引擎数据/.dsh/场景记忆/我的世界/项目记忆/mineflayer-GTNH.md` + 同目录 `mineflayer-GTNH/`（16 张卡片）。
+> 给「刚开的新会话」看：先读这一页，再按需读 `docs/MEMORY.md`（工程快照）、`docs/FINDINGS.md`（34 节实证）、`docs/API.md`（`bot.*` 速查）、`PLAN.md`（路线）。
+> mod 记忆在仓库内 `docs/memory/`（22 张卡片，跟代码一起提交）；同一份内容的活副本在场景记忆目录
+> `G:/deepseek/workbench/引擎数据/.dsh/场景记忆/我的世界/项目记忆/mineflayer-GTNH.md`（只有 DSH 环境能读）。
 
 ---
 
 ## 0. 一句话现状
 
-能连 **GTNH 2.9.0（MC 1.7.10）** 的 mineflayer fork：连服 → 区块/世界 → 物理 → 挖/放/攻击/用物品/吃/丢弃 → 箱子/工作台/熔炉/GT 机器 GUI → 合成/熔炉 → 配方数据（矿辞 + 原版 + GT 175689 + 11 mod 8206 + TiC 静态表）→ **GT 压模机全链路**（放机器 → 太阳能供电 → 投料 → 电压校验 → 取件）。
-**213 个测试全过**，12 个联机冒烟脚本。
+能连 **GTNH 2.9.0（MC 1.7.10）** 的 mineflayer fork：连服 → 区块/世界 → 物理 → 挖/放/攻击/用物品/吃/丢弃 → 箱子/工作台/熔炉/GT 机器 GUI → 合成/熔炉 → 配方数据（矿辞 + 原版 + GT 175689 + 17 mod 8906 + TiC 静态表 + 实体 148）→ **GT 压模机全链路**（放机器 → 太阳能供电 → 投料 → 电压校验 → 取件）。
+**213 个测试全过**，13 个冒烟脚本（12 联机 + 1 离线）。
 
 ## 1. 十分钟自检（照抄）
 
@@ -56,8 +57,8 @@ packages/
 │   └── tools/jmx/         # Java agent 探针（见 §4）
 ├── mineflayer-fork/       # **主力**：vendored mineflayer 4.39 + lib/gtnh/* 补丁
 │   ├── lib/loader.js      # 建连、注册表注入、各 attach* 挂载点
-│   ├── lib/gtnh/{world,physics,physics-tick,blockshape,items,actions,modularui,recipes,tconstruct,smeltery,gtmachine,chat,mods}.js
-│   └── tools/*.js         # 12 个冒烟脚本（含 window-smoke）
+│   ├── lib/gtnh/{world,physics,physics-tick,blockshape,entities,items,actions,modularui,recipes,tconstruct,smeltery,gtmachine,chat,mods}.js
+│   └── tools/*.js         # 13 个冒烟脚本（12 联机 + recipes-smoke 离线）
 ```
 
 ```
@@ -68,7 +69,8 @@ archive/
 ## 4. 三条常见扩展路径
 
 **A. 发现某个包解析失败 / 线格式不对** → 在 `protocol-fml/src/index.js` 加 `GTNH_XXX_PACKETS`：
-1. 抓真实帧（`.probe/tcpproxy2.js --listen 54616 --target 54615 --out data/raw/x.jsonl`，用户连 54616 操作）；
+1. 抓真实帧（本机 `.probe/tcpproxy2.js --listen 54616 --target 54615 --out data/raw/x.jsonl`，用户连 54616 操作；
+   `.probe/` 不入库，没有这个脚本就照 FINDINGS §14 的 nmp 代理思路自己写一个）；
 2. 用 `javap -c` 读服务端 mixin / 类确认字段序；
 3. 定义 `gtnh_xxx` 容器 + 字符串别名 `packet_xxx: 'gtnh_xxx'`（**必须用别名**，lodash.merge 会按下标合并数组）；
 4. 加进 `mergeCustomPackets(...)`，写真实帧做 fixture 的测试。
@@ -81,19 +83,23 @@ archive/
 ## 5. Java agent 速查（导出内存数据用）
 
 ```bash
-export JAVA_HOME=/g/java/jdk/jdk-21.0.7
+export JAVA_HOME=/g/java/jdk/jdk-21.0.7          # JDK 21 只用来编译/attach，服务端自己跑 Java 8/21 都行
 PID=$(powershell -NoProfile -Command "(Get-CimInstance Win32_Process -Filter \"Name='javaw.exe'\").ProcessId" | tr -d '\r')
 
-# 编译 + 打包（类名必须每代都换！JVM 会缓存已加载的 agent 类）
-cd packages/gtnh-data/tools/jmx
-$JAVA_HOME/bin/javac -d build src/DumpModsNN.java
-$JAVA_HOME/bin/jar cfm build/modsNN.jar mfNN.txt -C build .
+cd packages/gtnh-data/tools/jmx                   # 仓库自带 Attach 器 AgentMain（不依赖 .probe/）
+$JAVA_HOME/bin/javac -encoding UTF-8 -d build src/AgentMain.java src/DumpModsNN.java
+printf 'Manifest-Version: 1.0\nAgent-Class: DumpModsNN\n\n' > mfNN.txt
+$JAVA_HOME/bin/jar cfm modsNN.jar mfNN.txt -C build .
 
-# attach（jar 必须绝对路径；args 用 | 分 3 段，filter 里不能再有 |）
-java -cp /g/java/minecraft/mineflayer-GTNH/.probe/jmx Attach1 $PID "G:/.../build/modsNN.jar" "<outFile>|<regex>"
+# attach：<pid> <agent jar 绝对路径> <agent 自己的 args>
+java -cp build AgentMain $PID "G:/java/minecraft/mineflayer-GTNH/packages/gtnh-data/tools/jmx/modsNN.jar" "<outFile>"
 ```
 
-四条铁律：**换类名、换 jar 名、绝对路径、outFile 写 `G:/tmp/...`**（写 `/tmp` 会静默落空）；attach 失败只会报 `Agent JAR loaded but agent failed to initialize`，必须在 agent 里 try/catch 把堆栈写到 `<outFile>.err`。
+四条铁律：**换类名、换 jar 名、绝对路径、outFile 写 `G:/...`**（写 `/tmp` 会静默落空）；
+attach 失败只会报 `Agent JAR loaded but agent failed to initialize`，必须在 agent 的 `agentmain` 里 try/catch 把堆栈写到 `<outFile>.err`。
+
+agent 的参数格式各版不同（`DumpModsNN` 是 `"<out>"` 或 `"<out>|<jar>|<regex>"`，`ProbeScan*` 是 `"<out>@@<jar1;jar2>@@<正则>"`）——
+**先看那个类的 `run()` 怎么切 args**，别照抄别的探针。
 
 ## 6. 陷阱 Top 10（详细见 FINDINGS 对应节）
 
