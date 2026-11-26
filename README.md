@@ -51,7 +51,11 @@ npm --workspace mineflayer-fork run recipes-smoke
 npm --workspace mineflayer-fork run fork-smoke
 ```
 
-最小可用脚本：
+最小可用脚本（完整可跑的在 [`examples/`](examples/)）：
+
+- `node examples/recipes.js 7640 32577` —— 离线查配方，不用服务端
+- `node examples/walk-and-dig.js 127.0.0.1 54615 "20 90 20"` —— 登录 → 走路 → 挖一块 → 看背包
+- `node examples/machine-panel.js 33 78 19 127.0.0.1 54615 "33 79 20"` —— 右键 GT 机器读面板同步值
 
 ```js
 const { createBot, loadServerMods } = require('mineflayer-fork')
