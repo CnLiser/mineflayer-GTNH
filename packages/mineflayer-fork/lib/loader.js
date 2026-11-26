@@ -231,6 +231,7 @@ function createBot (options = {}) {
     require('./gtnh/modularui').attachModularUI(bot)
     require('./gtnh/pathfinder').attachPathfinder(bot)
     require('./gtnh/mining').attachMining(bot)
+    require('./gtnh/harvest').attachHarvest(bot)
     // GTNH-PATCH: GTNH 矿辞 / 配方数据（bot.gtnhRecipes / bot.oreItems / bot.gtnhRecipesFor）
     require('./gtnh/recipes').attachRecipes(bot)
     // GTNH-PATCH: TiC 冶炼炉/浇筑辅助（结构判定、投料、点水龙头）

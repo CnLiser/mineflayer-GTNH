@@ -2062,3 +2062,82 @@ fork：mod 实体（EnderZoo 苦力怕 id=6）名字正确、原版 Creeper 仍�
 `fetchEntity(id)` 对没收到 spawn 包的 id 也会建一个空实体（`name` 为 undefined、位置 (0,0,0)）；
 实测出生点附近 31 个实体里有 16 个是这种（服务器对未 spawn 的 id 先发了 metadata/velocity）。这是上游行为，
 不影响按名字找实体（这些条目 `name` 是 undefined 而不是某个真名），没动。
+
+## 三十五、2026-11-26：挖方块要什么工具（GT 的机器/线缆/矿）
+
+### 35.1 现象
+
+`bot.dig()` 对任何方块都直接挖，不看手里的工具。GTNH 里这是错的：
+GT 的机器方块要扳手，线缆要剪线钳，矿要镐（且等级随材料升高），
+空手或拿错工具挖不掉（客户端会一直发挖掘动画，服务端不认）。
+
+根因有两层：
+
+1. 上游 `lib/plugins/digging.js` 只管发 `player_digging`，本地不做 `canHarvestBlock` 校验；
+2. minecraft-data 对 1.7.10 只给 `boundingBox: 'block'/'empty'`，没有 harvest 信息。
+
+### 35.2 数据：17126 条 {name, meta, tool, level}
+
+1.7.10 的方块自己声明 `getHarvestTool(int meta)` / `getHarvestLevel(int meta)`，
+GT 把这两个用到了非原版工具上。从服务端内存导出来：
+
+```
+packages/gtnh-data/tools/jmx/src/DumpHarvest7.java
+  → packages/gtnh-data/data/harvest.jsonl.gz   （67.2 KB，4258 个方块 × meta 0..15，只留 tool 非空的 17126 条）
+```
+
+分布：pickaxe 12146 / wrench 2873 / axe 1247 / shovel 606 / crowbar 176 / sword 32 /
+scoop 26 / shears 16 / cutter 4。
+
+写探针时踩的坑（DumpHarvest1..6 都失败）：
+
+- 1.7.10 **没有 `Block.blocksList` 数组**（那是更早的版本），方块表是 `Block.blockRegistry`；
+- 它是 `cpw.mods.fml.common.registry.FMLControlledNamespacedRegistry`，
+  **只实现 `Iterable`，不是 `Map`**——`instanceof Map` 判断会直接漏掉；
+- 拿注册名的正确入口是注册表自己的 `RegistryNamespaced.func_148750_c(Object)`，
+  不是 `Block` 的静态方法（`Block.func_149739_a()` 给的是 unlocalized name，不是注册名）。
+
+### 35.3 GT 的工具是「一个物品 + damage」
+
+这一条最容易错：GT 的扳手、剪线钳、锤、锯……**都是同一个物品**
+`gregtech:gt.metatool.01`，靠 damage 区分，注册名完全一样，
+物品的 `displayName` 也还是注册名（客户端才用 lang 渲染）。
+
+所以「名字里含 wrench 就是扳手」这条规则对 GT 工具全部失效。
+
+类型只在 lang 里：`gt.metatool.01.<damage>.name`。
+
+```
+10 Saw        12 Hammer      14 Soft Mallet   16 Wrench
+18 File       20 Crowbar     22 Screwdriver   24 Mortar
+26 Wire Cutter 28 Scoop      30 Branch Cutter 34 Knife
+36 Butchery Knife 44 Plunger 46 Rolling Pin
+170/172/174/176 各种涡轮    180..192 Pocket Multitool 194 Trowel
+```
+
+生成成 `packages/gtnh-data/data/gt-tools.json`（`tools/build-gt-tools.js` 从 gregtech jar 的
+`assets/gregtech/lang/{en_US,zh_CN}.lang` 解析），27 条。
+
+**走错的死路**：`Item.getHarvestLevel(stack, toolClass)` 对 GT 工具没有区分力——
+`DumpGtTools1.java` 对 damage 0..60 × 16 个工具类全部返回 0，任何一类都「属于」，
+这条路直接放弃。另外 damage 0 的 metatool 是不存在的物品（`give` 回来是空的）。
+
+### 35.4 落地
+
+- `gtnh-data/src/gt-tools.js`：`gtToolKind(name, meta)` / `gtToolName(name, meta, 'zh')` / `gtToolsOfKind(kind)`；
+- `mineflayer-fork/lib/gtnh/harvest.js`：`toolKindOf(item)` 先查 GT 表再走名字正则；
+  `findTools` 支持别名——**GT 的锤可以当镐挖石/矿**（`TOOL_ALIASES.pickaxe = ['pickaxe','hammer','multitool']`）；
+  装备比较必须连 metadata 一起比（`sameItem`），否则手持扳手会被当成「已经拿着镐」；
+- `mining.js` 的 `mineBlock` 挖之前调 `equipToolFor`，拿不到工具就写 `bot._lastMineReason` 返回 false。
+
+实机（创造模式，三块方并排）：
+
+```
+机器 gt.blockmachines:1 → 要 wrench 1   空手 false「没有wrench」  给 16 号扳手 → true 313ms
+矿   gt.blockores:1     → 要 pickaxe 0  空手 false「没有pickaxe」 给 12 号锤  → true 308ms
+线缆 gt.blockmachines:8 → 要 cutter 0   空手 false「没有cutter」  给 26 号剪线钳 → true 309ms
+```
+
+缺口：`gregtech:gt.blockores` 在 harvest 表里没有条目（GT 覆盖的是 `canHarvestBlock`），
+`harvest.js` 按名字 `/blockores|:.*_ore$|_ore\b/` 兜底成 pickaxe 0；
+等级没有按材料细分，实际挖不动高等级矿时不会自动升级工具。

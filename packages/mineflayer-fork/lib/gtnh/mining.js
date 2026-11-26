@@ -4,6 +4,7 @@
 // 站在挖得到的位置、挖完把掉落物捡起来。这一层把这些串起来，脚本只写一句
 // `await bot.mineNearby('minecraft:coal_ore', { count: 4 })`。
 const { Vec3 } = require('vec3')
+const { equipToolFor } = require('./harvest')
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -33,7 +34,8 @@ function blockIdsFor (bot, name) {
   return ids
 }
 
-// 挖一块。站得太远就先走过去（允许挖穿挡路的方块）
+// 挖一块。站得太远就先走过去（允许挖穿挡路的方块）；挖之前先把需要的工具换上
+// （GT 的矿要镐、机器要扳手、线缆要剪线钳，见 lib/gtnh/harvest.js）。
 async function mineBlock (bot, block, opts = {}) {
   const reach = opts.reach || 3
   const pos = block.position
@@ -50,9 +52,12 @@ async function mineBlock (bot, block, opts = {}) {
   // 多数没这个字段（注册表来自 FML 的 ModIdData，不是 minecraft-data），
   // 会把所有 GTNH 方块判成「挖不了」。这里只排除液体/火焰/基岩，剩下的交给 bot.dig 试。
   if (!opts.force && /water|lava|fire|bedrock|barrier/i.test(fresh.name || '')) return false
+  const tool = await equipToolFor(bot, fresh, opts)
+  if (!tool.ok) { bot._lastMineReason = tool.reason; return false }
   const dug = await withTimeout(bot.dig(fresh, opts.force), opts.digTimeoutMs || 10000, 'timeout')
-  if (dug === 'timeout') return false
+  if (dug === 'timeout') { bot._lastMineReason = `挖掘超时（${fresh.name}）`; return false }
   await sleep(opts.afterMs || 250)
+  bot._lastMineReason = null
   return true
 }
 
@@ -80,12 +85,15 @@ async function mineNearby (bot, name, opts = {}) {
   const want = opts.count || 1
   const found = bot.findBlocks({ matching: ids, maxDistance: opts.radius || 16, count: want * 4 })
   const mined = []
+  const skipped = []
   for (const pos of found) {
     if (mined.length >= want) break
     const b = bot.blockAt(pos)
     if (!b || !b.boundingBox || b.boundingBox === 'empty') continue
     if (await mineBlock(bot, b, opts)) mined.push({ name: b.name, position: pos })
+    else skipped.push({ name: b.name, position: pos, reason: bot._lastMineReason || '挖不动' })
   }
+  mined.skipped = skipped
   if (opts.collect !== false && mined.length) await collectDrops(bot, opts)
   return mined
 }

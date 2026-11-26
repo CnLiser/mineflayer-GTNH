@@ -221,8 +221,34 @@ await bot.collectDrops({ collectMs: 4000 })
 ```
 
 `count` 是目标块数，`radius` 是搜索半径（格），`dig` 默认 true（走过去时允许挖穿挡路的方块），
-`collect` 默认 true。挖不到（够不着、没工具、被基岩挡住）就跳过那一块继续找下一块，返回值是实际挖掉的块。
-生存模式需要手里有对应的镐，`bot.canDigBlock(block)` 会先判一次。
+`collect` 默认 true。挖不到（够不着、没工具、被基岩挡住）就跳过那一块继续找下一块，
+返回值是实际挖掉的块（数组上挂着 `mined.skipped = [{ name, position, reason }]`），
+最后一次失败原因在 `bot._lastMineReason`。
+
+### 6.3 工具与挖掘等级
+
+GTNH 里不同的方块要不同的工具：矿要镐（等级随材料升高）、机器要扳手、线缆/导线要剪线钳、
+蜂箱要捕虫网。这些信息从服务端导成了 `gtnh-data/data/harvest.jsonl.gz`（17126 条），
+`bot.dig` 之前会先查表、再确认手里有没有对应的工具。
+
+```js
+bot.toolNeeded(block)          // { tool: 'wrench', level: 1 } / { tool: 'pickaxe', level: 0 } / null
+bot.findTools('wrench')        // 背包里能当扳手用的物品，按材质从好到差
+await bot.equipToolFor(block)  // { ok, tool, need }，拿不到工具时 ok=false + reason
+```
+
+GT 的扳手、剪线钳、锤都是同一个物品 `gregtech:gt.metatool.01`，靠 damage 区分
+（16 扳手 / 26 剪线钳 / 12 锤），`bot.findTools` 按 damage 认，不看名字。
+**GT 的锤可以当镐用**（挖石、挖矿），所以 `pickaxe` 的候选里包含 hammer 和多功能工具。
+
+```js
+// 挖机器：没有扳手会被拦下，不会白挖
+const r = await bot.equipToolFor(machineBlock)
+if (!r.ok) console.log(r.reason)   // '没有wrench（方块 gregtech:gt.blockmachines 需要）'
+```
+
+等级（`need.level`）目前只用于报告，还没做「等级不够就换更好的工具」——实机挖不动高等级矿时，
+`bot.dig` 会超时，`_lastMineReason` 是「挖掘超时」。
 
 ## 7. 聊天
 

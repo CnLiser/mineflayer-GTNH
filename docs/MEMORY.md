@@ -124,7 +124,7 @@ archive/
 
 `mineflayer-fork` 的 GTNH 补丁（都带 `GTNH-PATCH` 注释）：`lib/version.js`、
 `lib/loader.js`（createFmlClient + 注册表灌入 + gtnh mui 挂载）、`lib/plugins/blocks.js`
-（整份重写）、`lib/gtnh/{world,physics,physics-tick,blockshape,modularui,entities,reconnect,pathfinder}.js`、`lib/plugins/physics.js`
+（整份重写）、`lib/gtnh/{world,physics,physics-tick,blockshape,modularui,entities,reconnect,pathfinder,mining,harvest}.js`、`lib/plugins/physics.js`
 （换替身 + stance）、`entities.js` / `inventory.js`（传 registry、光标补丁、隐式窗口）、
 `game.js`（brand 通道）、`health.js`（spawn 兜底）。
 
@@ -218,8 +218,8 @@ gtnhFlag  : u8                  // 恒等于 count（x1→01, x2→02, x64→40�
 | 动作层（挖掘 / 攻击 / 使用 / 合成 / 熔炉 / 丢弃 / 吃） | ✅ |
 | M4.5 vendored fork | 🚧 登录→生成→世界→物理→挖掘→背包→窗口→机器 GUI→动作层全通（生存挖掘/攻击/用物品已验） |
 
-**测试：全仓 233 个**（gtnh-data 67 / prismarine-chunk-1.7 7 / protocol-fml 48 /
-mineflayer-fork 111），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
+**测试：全仓 251 个**（gtnh-data 77 / prismarine-chunk-1.7 7 / protocol-fml 48 /
+mineflayer-fork 119），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
 能力等价地搬进了 fork（physics-tick 13 / blockshape 6 / chat 6 / support-feature 3 / inventory 5 / window 6 / entities 3 / reconnect 3 / pathfinder 12 / mining 5）。
 
 ## 6. 冒烟工具
@@ -278,6 +278,13 @@ npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数�
    `lib/gtnh/{mods,chat}.js`，4 个 tool 改 require fork 门面，旧包的窗口/背包/物理/聊天/feature
    测试在 fork 里重建（`test/helpers/offline-bot.js` 让 46 个插件离线可跑），包里内容已 `git mv` 到
    `archive/mineflayer-gtnh/`（不在 `packages/*` 内，脱离 workspace）。
+7. **工具与挖掘等级**：已按 GT 规则做——`gtnh-data/data/harvest.jsonl.gz`（17126 条
+   `{name, meta, tool, level}`，从服务端 `Block.getHarvestTool/getHarvestLevel` 导）+ 
+   `gtnh-data/data/gt-tools.json`（27 条 GT 工具 damage→类型，从 gregtech 的 lang 解析）。
+   `lib/gtnh/harvest.js` 挂 `bot.toolNeeded / bot.findTools / bot.equipToolFor`，`mineBlock`
+   挖之前先选工具：矿要镐（GT 的锤也算）、机器要扳手、线缆要剪线钳。实测三种方块都按预期拦/放（FINDINGS §35）。
+   **还欠**：① `gt.blockores` 不在 harvest 表里（GT 覆盖 `canHarvestBlock`），现在按名字兜底成
+   pickaxe 0，没按材料分等级，挖不动高等级矿时不会自动换更好的工具；② 生存模式「挖掉→掉落物进背包」还没实机验过。
 
 ## 8. 记忆里容易忘的小事
 

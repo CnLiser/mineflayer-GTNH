@@ -25,6 +25,8 @@ const { TConstructData, loadTConstruct, T_CONSTRUCT_FILE } = require('./src/tcon
 const { GtRecipes, loadGtRecipes, DATA_FILE: GT_RECIPES_FILE } = require('./src/gt-recipes')
 const { ModRecipes, loadModRecipes, MOD_RECIPES_FILE } = require('./src/mod-recipes')
 const { EntityTypes, loadEntities, ENTITIES_FILE } = require('./src/entities')
+const { toolFor: harvestToolFor, needs: needsTool, toolCounts: harvestToolCounts, HARVEST_FILE } = require('./src/harvest')
+const { gtToolKind, gtToolName, gtToolsOfKind, GT_TOOLS_FILE } = require('./src/gt-tools')
 const {
   FEATURES_1_7_10,
   GTNH_FEATURES,
@@ -74,5 +76,13 @@ module.exports = {
   T_CONSTRUCT_FILE,
   EntityTypes,
   loadEntities,
-  ENTITIES_FILE
+  ENTITIES_FILE,
+  harvestToolFor,
+  needsTool,
+  harvestToolCounts,
+  HARVEST_FILE,
+  gtToolKind,
+  gtToolName,
+  gtToolsOfKind,
+  GT_TOOLS_FILE
 }

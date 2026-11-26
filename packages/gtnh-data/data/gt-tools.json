@@ -1,0 +1,144 @@
+{
+  "generatedAt": "2026-11-26T13:58:37.708Z",
+  "source": "gregtech-5.09.54.265.jar",
+  "count": 27,
+  "items": {
+    "gregtech:gt.metatool.01": {
+      "10": {
+        "kind": "saw",
+        "name": "Saw",
+        "zh": "锯子"
+      },
+      "12": {
+        "kind": "hammer",
+        "name": "Hammer",
+        "zh": "锻造锤"
+      },
+      "14": {
+        "kind": "soft_mallet",
+        "name": "Soft Mallet",
+        "zh": "软锤"
+      },
+      "16": {
+        "kind": "wrench",
+        "name": "Wrench",
+        "zh": "扳手"
+      },
+      "18": {
+        "kind": "file",
+        "name": "File",
+        "zh": "锉"
+      },
+      "20": {
+        "kind": "crowbar",
+        "name": "Crowbar",
+        "zh": "撬棍"
+      },
+      "22": {
+        "kind": "screwdriver",
+        "name": "Screwdriver",
+        "zh": "螺丝刀"
+      },
+      "24": {
+        "kind": "mortar",
+        "name": "Mortar",
+        "zh": "研钵"
+      },
+      "26": {
+        "kind": "cutter",
+        "name": "Wire Cutter",
+        "zh": "剪线钳"
+      },
+      "28": {
+        "kind": "scoop",
+        "name": "Scoop",
+        "zh": "捕虫网"
+      },
+      "30": {
+        "kind": "branch_cutter",
+        "name": "Branch Cutter",
+        "zh": "剪枝器"
+      },
+      "34": {
+        "kind": "knife",
+        "name": "Knife",
+        "zh": "小刀"
+      },
+      "36": {
+        "kind": "knife",
+        "name": "Butchery Knife",
+        "zh": "屠刀"
+      },
+      "44": {
+        "kind": "plunger",
+        "name": "Plunger",
+        "zh": "搋子"
+      },
+      "46": {
+        "kind": "rolling_pin",
+        "name": "Rolling Pin",
+        "zh": "擀面杖"
+      },
+      "170": {
+        "kind": "turbine",
+        "name": "Small Turbine",
+        "zh": "小型涡轮"
+      },
+      "172": {
+        "kind": "turbine",
+        "name": "Turbine",
+        "zh": "涡轮"
+      },
+      "174": {
+        "kind": "turbine",
+        "name": "Large Turbine",
+        "zh": "大型涡轮"
+      },
+      "176": {
+        "kind": "turbine",
+        "name": "Huge Turbine",
+        "zh": "巨型涡轮"
+      },
+      "180": {
+        "kind": "multitool",
+        "name": "Pocket Multitool",
+        "zh": "万能工具"
+      },
+      "182": {
+        "kind": "multitool",
+        "name": "Pocket Multitool (Branch Cutter)",
+        "zh": "万能工具（剪枝器）"
+      },
+      "184": {
+        "kind": "multitool",
+        "name": "Pocket Multitool (File)",
+        "zh": "万能工具（锉）"
+      },
+      "186": {
+        "kind": "multitool",
+        "name": "Pocket Multitool (Knife)",
+        "zh": "万能工具（小刀）"
+      },
+      "188": {
+        "kind": "multitool",
+        "name": "Pocket Multitool (Saw)",
+        "zh": "万能工具（锯）"
+      },
+      "190": {
+        "kind": "multitool",
+        "name": "Pocket Multitool (Screwdriver)",
+        "zh": "万能工具（螺丝刀）"
+      },
+      "192": {
+        "kind": "multitool",
+        "name": "Pocket Multitool (Wire Cutter)",
+        "zh": "万能工具（剪线钳）"
+      },
+      "194": {
+        "kind": "tool",
+        "name": "Decorator's Trowel",
+        "zh": "装饰铲"
+      }
+    }
+  }
+}
