@@ -2195,3 +2195,33 @@ if (bot.blockAt(bot.entity.position) != null) { // otherwise the chunk is unload
 
 手动补发 `position` 包也没用，说明卡在服务端那侧（该列没发）。
 所以冒烟/探针脚本要 tp 到场地的，**别一次 tp 太远**；先 tp 到附近再走过去更稳。
+
+### 35.7 生存模式：空手挖得动，**手持物品就挖不动**（未解）
+
+想验「挖掉 → 掉落物进背包」，结果撞在一个反常现象上。同一场地、同一格、同一会话：
+
+| 手持 | 方块 | 客户端 `digTime` | 结果（`testforblock … air`） |
+| --- | --- | --- | --- |
+| 空手 | `minecraft:dirt` | 750 ms | ✅ 1.4 s 挖掉 |
+| 空手 | `minecraft:stone` | 7500 ms | ✅ 9.2 s 挖掉 |
+| 原版钻石镐（`/give` 给的） | `minecraft:dirt` / `stone` / `coal_ore` | 300–750 ms | ❌ 25 s 超时，服务端方块纹丝不动 |
+| 原版钻石镐（创造模式 `setInventorySlot` 塞的） | 同上 | 同上 | ❌ 同上 |
+| GT 锤 `gt.metatool.01:12` / `:2` / `:0` | `coal_ore` | — | ❌ 同上 |
+
+**空手能挖、而且时间和原版公式对得上**（`stone` 空手 1/1.5/100 每 tick → 7.5 s，实测 9.2 s，差的是服务端 tick 卡顿）。
+所以客户端的 `block_dig` 包、坐标、face、`status 0 → 2` 全都对，服务端也确实在累加进度。
+
+**已排除**：
+- 区块没加载（`bot.blockAt` 读得到、`onGround=true`、y≈81.000）；
+- 包格式（创造模式发同一份包能挖掉，`testforblock` 确认变空气）；
+- 等太短（`waitTime` 3000 / 5000 / 8000 / 20000 全试过）；
+- 重发 `status 0`（会重置进度，反而更糟）；
+- `held_item_slot` 包（手动发 `{ slotId: 1 }` 后空手仍能挖）；
+- 工具来源（`/give` 的服务端物品与 creative 塞的完全一致地失败）；
+- `gamemode` 没生效（`gamemode 0` + `gamemode survival` 都发过，客户端 `gameMode` 变成 survival，服务端日志也认）。
+
+**未解**：服务端在「手持物品」时进度像是 0。可能方向：GT 服务端对非 GT 工具的 `getBreakSpeed` 有特殊处理，
+或者服务端 tick 卡顿（日志有 `Can't keep up! Running 2126ms behind, skipping 42 tick(s)`）让 `updateBlockRemoving` 的累加异常。
+要用真实客户端在同一台服务器上挖一次做对照，才能判定这是服务器的问题还是 bot 的问题。
+
+**影响**：`bot.mineNearby` 在生存服上挖不动（创造模式正常，`fork-smoke` 的挖掘就是创造模式）。

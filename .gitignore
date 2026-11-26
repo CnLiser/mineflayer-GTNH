@@ -25,3 +25,4 @@ tmp/
 # 探针的临时输出/输入（.tmp-scan、.tmp-*.js）
 .tmp-scan/
 .tmp-*.js
+packages/gtnh-data/tools/jmx/pp*.jar

@@ -285,8 +285,9 @@ npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数�
    挖之前先选工具：矿要镐（GT 的锤也算）、机器要扳手、线缆要剪线钳。实测三种方块都按预期拦/放（FINDINGS §35）。
    **还欠**：① `gt.blockores` 不在 harvest 表里（GT 覆盖 `canHarvestBlock`），现在按名字兜底成
    pickaxe 0，没按材料分等级，挖不动高等级矿时不会自动换更好的工具；② 生存模式「挖掉→掉落物进背包」还没实机验过，
-   而且**证明了要用 GT 自己的工具**：原版钻石镐挖 `coal_ore` 15 秒不动，`dirt` 5 秒能挖
-   （FINDINGS §35.5）；③ 远距离 tp 后区块不来、物理停摆（FINDINGS §35.6），冒烟脚本 tp 别一次太远。
+   **生存挖掘还有个未解现象：空手能挖、手持物品就挖不动**（原版镐、`/give` 的、creative 塞的、
+   GT 的锤全一样，`waitTime` 放到 20 秒也没用，见 FINDINGS §35.7）——所以「挖掉→掉落物进背包」这条
+   端到端仍没验过；③ 远距离 tp 后区块不来、物理停摆（FINDINGS §35.6），冒烟脚本 tp 别一次太远。
 
 ## 8. 记忆里容易忘的小事
 
