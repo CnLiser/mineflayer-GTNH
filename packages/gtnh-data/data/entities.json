@@ -1,0 +1,747 @@
+{
+ "generatedAt": "2026-11-26",
+ "source": "com.gtnh EntityList（1.7.10 + 全部 mod）",
+ "total": 148,
+ "entities": [
+  {
+   "id": 1,
+   "name": "Item",
+   "cls": "net.minecraft.entity.item.EntityItem"
+  },
+  {
+   "id": 2,
+   "name": "XPOrb",
+   "cls": "net.minecraft.entity.item.EntityXPOrb"
+  },
+  {
+   "id": 3,
+   "name": "soundEntity",
+   "cls": "crazypants.enderio.item.darksteel.SoundEntity"
+  },
+  {
+   "id": 4,
+   "name": "rangeEntity",
+   "cls": "crazypants.enderio.machine.ranged.RangeEntity"
+  },
+  {
+   "id": 5,
+   "name": "enderzoo.Enderminy",
+   "cls": "crazypants.enderzoo.entity.EntityEnderminy"
+  },
+  {
+   "id": 6,
+   "name": "enderzoo.ConcussionCreeper",
+   "cls": "crazypants.enderzoo.entity.EntityConcussionCreeper"
+  },
+  {
+   "id": 7,
+   "name": "enderzoo.FallenKnight",
+   "cls": "crazypants.enderzoo.entity.EntityFallenKnight"
+  },
+  {
+   "id": 8,
+   "name": "LeashKnot",
+   "cls": "net.minecraft.entity.EntityLeashKnot"
+  },
+  {
+   "id": 9,
+   "name": "Painting",
+   "cls": "net.minecraft.entity.item.EntityPainting"
+  },
+  {
+   "id": 10,
+   "name": "Arrow",
+   "cls": "net.minecraft.entity.projectile.EntityArrow"
+  },
+  {
+   "id": 11,
+   "name": "Snowball",
+   "cls": "net.minecraft.entity.projectile.EntitySnowball"
+  },
+  {
+   "id": 12,
+   "name": "Fireball",
+   "cls": "net.minecraft.entity.projectile.EntityLargeFireball"
+  },
+  {
+   "id": 13,
+   "name": "SmallFireball",
+   "cls": "net.minecraft.entity.projectile.EntitySmallFireball"
+  },
+  {
+   "id": 14,
+   "name": "ThrownEnderpearl",
+   "cls": "net.minecraft.entity.item.EntityEnderPearl"
+  },
+  {
+   "id": 15,
+   "name": "EyeOfEnderSignal",
+   "cls": "net.minecraft.entity.item.EntityEnderEye"
+  },
+  {
+   "id": 16,
+   "name": "ThrownPotion",
+   "cls": "net.minecraft.entity.projectile.EntityPotion"
+  },
+  {
+   "id": 17,
+   "name": "ThrownExpBottle",
+   "cls": "net.minecraft.entity.item.EntityExpBottle"
+  },
+  {
+   "id": 18,
+   "name": "ItemFrame",
+   "cls": "net.minecraft.entity.item.EntityItemFrame"
+  },
+  {
+   "id": 19,
+   "name": "WitherSkull",
+   "cls": "net.minecraft.entity.projectile.EntityWitherSkull"
+  },
+  {
+   "id": 20,
+   "name": "PrimedTnt",
+   "cls": "net.minecraft.entity.item.EntityTNTPrimed"
+  },
+  {
+   "id": 21,
+   "name": "FallingSand",
+   "cls": "net.minecraft.entity.item.EntityFallingBlock"
+  },
+  {
+   "id": 22,
+   "name": "FireworksRocketEntity",
+   "cls": "net.minecraft.entity.item.EntityFireworkRocket"
+  },
+  {
+   "id": 23,
+   "name": "enderzoo.FallenMount",
+   "cls": "crazypants.enderzoo.entity.EntityFallenMount"
+  },
+  {
+   "id": 24,
+   "name": "enderzoo.WitherWitch",
+   "cls": "crazypants.enderzoo.entity.EntityWitherWitch"
+  },
+  {
+   "id": 25,
+   "name": "enderzoo.WitherCat",
+   "cls": "crazypants.enderzoo.entity.EntityWitherCat"
+  },
+  {
+   "id": 26,
+   "name": "enderzoo.DireWolf",
+   "cls": "crazypants.enderzoo.entity.EntityDireWolf"
+  },
+  {
+   "id": 27,
+   "name": "enderzoo.DireSlime",
+   "cls": "crazypants.enderzoo.entity.EntityDireSlime"
+  },
+  {
+   "id": 28,
+   "name": "EntityPrimedCharge",
+   "cls": "crazypants.enderzoo.charge.EntityPrimedCharge"
+  },
+  {
+   "id": 29,
+   "name": "porcodon",
+   "cls": "de.katzenpapst.amunra.mob.entity.EntityPorcodon"
+  },
+  {
+   "id": 30,
+   "name": "alienVillagerAR",
+   "cls": "de.katzenpapst.amunra.mob.entity.EntityARVillager"
+  },
+  {
+   "id": 31,
+   "name": "robotVillager",
+   "cls": "de.katzenpapst.amunra.mob.entity.EntityRobotVillager"
+  },
+  {
+   "id": 32,
+   "name": "sentryRobot",
+   "cls": "de.katzenpapst.amunra.mob.entity.EntitySentry"
+  },
+  {
+   "id": 33,
+   "name": "alienBug",
+   "cls": "de.katzenpapst.amunra.mob.entity.EntityAlienBug"
+  },
+  {
+   "id": 34,
+   "name": "osirisBoss",
+   "cls": "de.katzenpapst.amunra.mob.entity.EntityMummyBoss"
+  },
+  {
+   "id": 35,
+   "name": "bloodTNT",
+   "cls": "com.arc.bloodarsenal.common.entity.EntityBloodTNT"
+  },
+  {
+   "id": 36,
+   "name": "EntityPermItem",
+   "cls": "makeo.gadomancy.common.entities.EntityPermNoClipItem"
+  },
+  {
+   "id": 37,
+   "name": "EntityAuraCore",
+   "cls": "makeo.gadomancy.common.entities.EntityAuraCore"
+  },
+  {
+   "id": 38,
+   "name": "FakePlayerEntity",
+   "cls": "makeo.gadomancy.common.entities.player.FakePlayerEntity"
+  },
+  {
+   "id": 39,
+   "name": "EntityItemElement",
+   "cls": "makeo.gadomancy.common.entities.EntityItemElement"
+  },
+  {
+   "id": 40,
+   "name": "MinecartCommandBlock",
+   "cls": "mods.railcraft.common.carts.EntityCartCommand"
+  },
+  {
+   "id": 41,
+   "name": "Boat",
+   "cls": "net.minecraft.entity.item.EntityBoat"
+  },
+  {
+   "id": 42,
+   "name": "MinecartRideable",
+   "cls": "mods.railcraft.common.carts.EntityCartBasic"
+  },
+  {
+   "id": 43,
+   "name": "MinecartChest",
+   "cls": "mods.railcraft.common.carts.EntityCartChest"
+  },
+  {
+   "id": 44,
+   "name": "MinecartFurnace",
+   "cls": "mods.railcraft.common.carts.EntityCartFurnace"
+  },
+  {
+   "id": 45,
+   "name": "MinecartTNT",
+   "cls": "mods.railcraft.common.carts.EntityCartTNT"
+  },
+  {
+   "id": 46,
+   "name": "MinecartHopper",
+   "cls": "net.minecraft.entity.item.EntityMinecartHopper"
+  },
+  {
+   "id": 47,
+   "name": "MinecartSpawner",
+   "cls": "net.minecraft.entity.ai.EntityMinecartMobSpawner"
+  },
+  {
+   "id": 48,
+   "name": "Mob",
+   "cls": "net.minecraft.entity.EntityLiving"
+  },
+  {
+   "id": 49,
+   "name": "Monster",
+   "cls": "net.minecraft.entity.monster.EntityMob"
+  },
+  {
+   "id": 50,
+   "name": "Creeper",
+   "cls": "net.minecraft.entity.monster.EntityCreeper"
+  },
+  {
+   "id": 51,
+   "name": "Skeleton",
+   "cls": "net.minecraft.entity.monster.EntitySkeleton"
+  },
+  {
+   "id": 52,
+   "name": "Spider",
+   "cls": "net.minecraft.entity.monster.EntitySpider"
+  },
+  {
+   "id": 53,
+   "name": "Giant",
+   "cls": "net.minecraft.entity.monster.EntityGiantZombie"
+  },
+  {
+   "id": 54,
+   "name": "Zombie",
+   "cls": "net.minecraft.entity.monster.EntityZombie"
+  },
+  {
+   "id": 55,
+   "name": "Slime",
+   "cls": "net.minecraft.entity.monster.EntitySlime"
+  },
+  {
+   "id": 56,
+   "name": "Ghast",
+   "cls": "net.minecraft.entity.monster.EntityGhast"
+  },
+  {
+   "id": 57,
+   "name": "PigZombie",
+   "cls": "net.minecraft.entity.monster.EntityPigZombie"
+  },
+  {
+   "id": 58,
+   "name": "Enderman",
+   "cls": "chylex.hee.entity.mob.EntityMobEnderman"
+  },
+  {
+   "id": 59,
+   "name": "CaveSpider",
+   "cls": "net.minecraft.entity.monster.EntityCaveSpider"
+  },
+  {
+   "id": 60,
+   "name": "Silverfish",
+   "cls": "net.minecraft.entity.monster.EntitySilverfish"
+  },
+  {
+   "id": 61,
+   "name": "Blaze",
+   "cls": "net.minecraft.entity.monster.EntityBlaze"
+  },
+  {
+   "id": 62,
+   "name": "LavaSlime",
+   "cls": "net.minecraft.entity.monster.EntityMagmaCube"
+  },
+  {
+   "id": 63,
+   "name": "EnderDragon",
+   "cls": "net.minecraft.entity.boss.EntityDragon"
+  },
+  {
+   "id": 64,
+   "name": "WitherBoss",
+   "cls": "net.minecraft.entity.boss.EntityWither"
+  },
+  {
+   "id": 65,
+   "name": "Bat",
+   "cls": "net.minecraft.entity.passive.EntityBat"
+  },
+  {
+   "id": 66,
+   "name": "Witch",
+   "cls": "net.minecraft.entity.monster.EntityWitch"
+  },
+  {
+   "id": 90,
+   "name": "Pig",
+   "cls": "net.minecraft.entity.passive.EntityPig"
+  },
+  {
+   "id": 91,
+   "name": "Sheep",
+   "cls": "net.minecraft.entity.passive.EntitySheep"
+  },
+  {
+   "id": 92,
+   "name": "Cow",
+   "cls": "net.minecraft.entity.passive.EntityCow"
+  },
+  {
+   "id": 93,
+   "name": "Chicken",
+   "cls": "net.minecraft.entity.passive.EntityChicken"
+  },
+  {
+   "id": 94,
+   "name": "Squid",
+   "cls": "net.minecraft.entity.passive.EntitySquid"
+  },
+  {
+   "id": 95,
+   "name": "Wolf",
+   "cls": "net.minecraft.entity.passive.EntityWolf"
+  },
+  {
+   "id": 96,
+   "name": "MushroomCow",
+   "cls": "net.minecraft.entity.passive.EntityMooshroom"
+  },
+  {
+   "id": 97,
+   "name": "SnowMan",
+   "cls": "net.minecraft.entity.monster.EntitySnowman"
+  },
+  {
+   "id": 98,
+   "name": "Ozelot",
+   "cls": "net.minecraft.entity.passive.EntityOcelot"
+  },
+  {
+   "id": 99,
+   "name": "VillagerGolem",
+   "cls": "net.minecraft.entity.monster.EntityIronGolem"
+  },
+  {
+   "id": 100,
+   "name": "EntityHorse",
+   "cls": "net.minecraft.entity.passive.EntityHorse"
+  },
+  {
+   "id": 120,
+   "name": "Villager",
+   "cls": "net.minecraft.entity.passive.EntityVillager"
+  },
+  {
+   "id": 200,
+   "name": "EnderCrystal",
+   "cls": "chylex.hee.entity.block.EntityBlockEnderCrystal"
+  },
+  {
+   "id": 256,
+   "name": "GalacticraftCore.EvolvedSpider",
+   "cls": "micdoodle8.mods.galacticraft.core.entities.EntityEvolvedSpider"
+  },
+  {
+   "id": 257,
+   "name": "GalacticraftCore.EvolvedZombie",
+   "cls": "micdoodle8.mods.galacticraft.core.entities.EntityEvolvedZombie"
+  },
+  {
+   "id": 258,
+   "name": "GalacticraftCore.EvolvedCreeper",
+   "cls": "micdoodle8.mods.galacticraft.core.entities.EntityEvolvedCreeper"
+  },
+  {
+   "id": 259,
+   "name": "GalacticraftCore.EvolvedSkeleton",
+   "cls": "micdoodle8.mods.galacticraft.core.entities.EntityEvolvedSkeleton"
+  },
+  {
+   "id": 260,
+   "name": "GalacticraftCore.EvolvedSkeletonBoss",
+   "cls": "micdoodle8.mods.galacticraft.core.entities.EntitySkeletonBoss"
+  },
+  {
+   "id": 261,
+   "name": "GalacticraftCore.AlienVillager",
+   "cls": "micdoodle8.mods.galacticraft.core.entities.EntityAlienVillager"
+  },
+  {
+   "id": 262,
+   "name": "GalacticraftMars.Sludgeling",
+   "cls": "micdoodle8.mods.galacticraft.planets.mars.entities.EntitySludgeling"
+  },
+  {
+   "id": 263,
+   "name": "GalacticraftMars.Slimeling",
+   "cls": "micdoodle8.mods.galacticraft.planets.mars.entities.EntitySlimeling"
+  },
+  {
+   "id": 264,
+   "name": "GalacticraftMars.CreeperBoss",
+   "cls": "micdoodle8.mods.galacticraft.planets.mars.entities.EntityCreeperBoss"
+  },
+  {
+   "id": 265,
+   "name": "GalacticraftCore.EvolvedBossBlaze",
+   "cls": "galaxyspace.core.entity.boss.EntityBlazeBoss"
+  },
+  {
+   "id": 266,
+   "name": "GalacticraftCore.EvolvedBossGhast",
+   "cls": "galaxyspace.core.entity.boss.EntityGhastBoss"
+  },
+  {
+   "id": 267,
+   "name": "GalacticraftCore.EvolvedCrystalBoss",
+   "cls": "galaxyspace.core.entity.boss.EntityCrystalBoss"
+  },
+  {
+   "id": 268,
+   "name": "GalacticraftCore.EvolvedBossSlime",
+   "cls": "galaxyspace.core.entity.boss.EntitySlimeBoss"
+  },
+  {
+   "id": 269,
+   "name": "GalacticraftCore.EvolvedBossWolf",
+   "cls": "galaxyspace.core.entity.boss.EntityWolfBoss"
+  },
+  {
+   "id": 270,
+   "name": "GalacticraftCore.EvolvedFireCreeper",
+   "cls": "galaxyspace.core.entity.mob.EntityEvolvedFireCreeper"
+  },
+  {
+   "id": 271,
+   "name": "GalacticraftCore.EvolvedFireSkeleton",
+   "cls": "galaxyspace.core.entity.mob.EntityEvolvedFireSkeleton"
+  },
+  {
+   "id": 272,
+   "name": "GalacticraftCore.EvolvedFireSpider",
+   "cls": "galaxyspace.core.entity.mob.EntityEvolvedFireSpider"
+  },
+  {
+   "id": 273,
+   "name": "GalacticraftCore.EvolvedEnderman",
+   "cls": "galaxyspace.core.entity.mob.EntityEvolvedEnderman"
+  },
+  {
+   "id": 274,
+   "name": "GalacticraftCore.Tentacles",
+   "cls": "galaxyspace.core.entity.mob.EntityTentacles"
+  },
+  {
+   "id": 275,
+   "name": "GalacticraftCore.EvolvedColdBlaze",
+   "cls": "galaxyspace.core.entity.mob.EntityEvolvedColdBlaze"
+  },
+  {
+   "id": 276,
+   "name": "GalacticraftCore.Crawler",
+   "cls": "galaxyspace.core.entity.mob.EntityCrawler"
+  },
+  {
+   "id": 277,
+   "name": "GalacticraftCore.EvolvedBlaze",
+   "cls": "galaxyspace.core.entity.mob.EntityEvolvedBlaze"
+  },
+  {
+   "id": 301,
+   "name": "BiomesOPlenty.JungleSpider",
+   "cls": "biomesoplenty.common.entities.EntityJungleSpider"
+  },
+  {
+   "id": 302,
+   "name": "BiomesOPlenty.Rosester",
+   "cls": "biomesoplenty.common.entities.EntityRosester"
+  },
+  {
+   "id": 303,
+   "name": "BiomesOPlenty.Glob",
+   "cls": "biomesoplenty.common.entities.EntityGlob"
+  },
+  {
+   "id": 304,
+   "name": "BiomesOPlenty.Phantom",
+   "cls": "biomesoplenty.common.entities.EntityPhantom"
+  },
+  {
+   "id": 305,
+   "name": "BiomesOPlenty.Wasp",
+   "cls": "biomesoplenty.common.entities.EntityWasp"
+  },
+  {
+   "id": 306,
+   "name": "BiomesOPlenty.Bird",
+   "cls": "biomesoplenty.common.entities.EntityBird"
+  },
+  {
+   "id": 307,
+   "name": "BiomesOPlenty.Pixie",
+   "cls": "biomesoplenty.common.entities.EntityPixie"
+  },
+  {
+   "id": 308,
+   "name": "EMT.archer",
+   "cls": "emt.entity.EntityArcher"
+  },
+  {
+   "id": 500,
+   "name": "etfuturum.rabbit",
+   "cls": "ganymedes01.etfuturum.entities.EntityRabbit"
+  },
+  {
+   "id": 501,
+   "name": "etfuturum.endermite",
+   "cls": "ganymedes01.etfuturum.entities.EntityEndermite"
+  },
+  {
+   "id": 502,
+   "name": "etfuturum.husk",
+   "cls": "ganymedes01.etfuturum.entities.EntityHusk"
+  },
+  {
+   "id": 503,
+   "name": "etfuturum.stray",
+   "cls": "ganymedes01.etfuturum.entities.EntityStray"
+  },
+  {
+   "id": 504,
+   "name": "etfuturum.villager_zombie",
+   "cls": "ganymedes01.etfuturum.entities.EntityZombieVillager"
+  },
+  {
+   "id": 505,
+   "name": "etfuturum.shulker",
+   "cls": "ganymedes01.etfuturum.entities.EntityShulker"
+  },
+  {
+   "id": 506,
+   "name": "etfuturum.fox",
+   "cls": "ganymedes01.etfuturum.entities.EntityFox"
+  },
+  {
+   "id": 6396,
+   "name": "witchery.demon",
+   "cls": "com.emoniph.witchery.entity.EntityDemon"
+  },
+  {
+   "id": 6397,
+   "name": "witchery.mandrake",
+   "cls": "com.emoniph.witchery.entity.EntityMandrake"
+  },
+  {
+   "id": 6398,
+   "name": "witchery.treefyd",
+   "cls": "com.emoniph.witchery.entity.EntityTreefyd"
+  },
+  {
+   "id": 6399,
+   "name": "witchery.hornedHuntsman",
+   "cls": "com.emoniph.witchery.entity.EntityHornedHuntsman"
+  },
+  {
+   "id": 6400,
+   "name": "witchery.ent",
+   "cls": "com.emoniph.witchery.entity.EntityEnt"
+  },
+  {
+   "id": 6401,
+   "name": "witchery.owl",
+   "cls": "com.emoniph.witchery.entity.EntityOwl"
+  },
+  {
+   "id": 6402,
+   "name": "witchery.toad",
+   "cls": "com.emoniph.witchery.entity.EntityToad"
+  },
+  {
+   "id": 6403,
+   "name": "witchery.babayaga",
+   "cls": "com.emoniph.witchery.entity.EntityBabaYaga"
+  },
+  {
+   "id": 6404,
+   "name": "witchery.covenwitch",
+   "cls": "com.emoniph.witchery.entity.EntityCovenWitch"
+  },
+  {
+   "id": 6405,
+   "name": "witchery.nightmare",
+   "cls": "com.emoniph.witchery.entity.EntityNightmare"
+  },
+  {
+   "id": 6406,
+   "name": "witchery.spectre",
+   "cls": "com.emoniph.witchery.entity.EntitySpectre"
+  },
+  {
+   "id": 6407,
+   "name": "witchery.poltergeist",
+   "cls": "com.emoniph.witchery.entity.EntityPoltergeist"
+  },
+  {
+   "id": 6408,
+   "name": "witchery.banshee",
+   "cls": "com.emoniph.witchery.entity.EntityBanshee"
+  },
+  {
+   "id": 6409,
+   "name": "witchery.spirit",
+   "cls": "com.emoniph.witchery.entity.EntitySpirit"
+  },
+  {
+   "id": 6410,
+   "name": "witchery.death",
+   "cls": "com.emoniph.witchery.entity.EntityDeath"
+  },
+  {
+   "id": 6411,
+   "name": "witchery.witchhunter",
+   "cls": "com.emoniph.witchery.entity.EntityWitchHunter"
+  },
+  {
+   "id": 6412,
+   "name": "witchery.lordoftorment",
+   "cls": "com.emoniph.witchery.entity.EntityLordOfTorment"
+  },
+  {
+   "id": 6413,
+   "name": "witchery.imp",
+   "cls": "com.emoniph.witchery.entity.EntityImp"
+  },
+  {
+   "id": 6414,
+   "name": "witchery.mindrake",
+   "cls": "com.emoniph.witchery.entity.EntityMindrake"
+  },
+  {
+   "id": 6415,
+   "name": "witchery.goblin",
+   "cls": "com.emoniph.witchery.entity.EntityGoblin"
+  },
+  {
+   "id": 6416,
+   "name": "witchery.goblinmog",
+   "cls": "com.emoniph.witchery.entity.EntityGoblinMog"
+  },
+  {
+   "id": 6417,
+   "name": "witchery.goblingulg",
+   "cls": "com.emoniph.witchery.entity.EntityGoblinGulg"
+  },
+  {
+   "id": 6418,
+   "name": "witchery.leonard",
+   "cls": "com.emoniph.witchery.entity.EntityLeonard"
+  },
+  {
+   "id": 6419,
+   "name": "witchery.lostsoul",
+   "cls": "com.emoniph.witchery.entity.EntityLostSoul"
+  },
+  {
+   "id": 6420,
+   "name": "witchery.wolfman",
+   "cls": "com.emoniph.witchery.entity.EntityWolfman"
+  },
+  {
+   "id": 6421,
+   "name": "witchery.hellhound",
+   "cls": "com.emoniph.witchery.entity.EntityHellhound"
+  },
+  {
+   "id": 6422,
+   "name": "witchery.werevillager",
+   "cls": "com.emoniph.witchery.entity.EntityVillagerWere"
+  },
+  {
+   "id": 6423,
+   "name": "witchery.villageguard",
+   "cls": "com.emoniph.witchery.entity.EntityVillageGuard"
+  },
+  {
+   "id": 6424,
+   "name": "witchery.vampire",
+   "cls": "com.emoniph.witchery.entity.EntityVampire"
+  },
+  {
+   "id": 6425,
+   "name": "witchery.lilith",
+   "cls": "com.emoniph.witchery.entity.EntityLilith"
+  },
+  {
+   "id": 6426,
+   "name": "witchery.wingedmonkey",
+   "cls": "com.emoniph.witchery.entity.EntityWingedMonkey"
+  },
+  {
+   "id": 6427,
+   "name": "witchery.reflection",
+   "cls": "com.emoniph.witchery.entity.EntityReflection"
+  }
+ ]
+}

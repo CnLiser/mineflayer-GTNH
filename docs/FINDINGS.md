@@ -2011,3 +2011,54 @@ T1 有 19 格材料、T8 有 53 格。第一版按 `minKey` 归一塞进 3x3，�
 
 - 单测：gtnh-data `test/mod-recipes.test.js` 加 3 条（火箭 32 / 培养器/突变 190 / 按物种查），fork 的第三批用例并入物种断言；
   全仓 **205 测试**（gtnh-data 62 / fork 88 / chunk 7 / protocol-fml 48）。
+
+## 三十四、2026-11-26：实体名——148 个 id，98 个来自 mod
+
+`setEntityData` 用 `entityDataByInternalId = bot.registry.entitiesArray`（minecraft-data）
+查 `spawn_entity_living` 的 `type`，查不到就 `name='unknown'`。GTNH 装了 98 个 mod 实体，
+它们全落成 unknown，于是 `bot.nearestEntity(e => e.name === 'X')` 之类没法用。
+
+### 34.1 数据来源
+
+`net.minecraft.entity.EntityList` 有五个静态 Map（SRG 名，`javap` 或反射都能看到）：
+
+| 字段 | 内容 | 大小 |
+| --- | --- | --- |
+| `field_75625_b` | 名字 → Class | 785 |
+| `field_75626_c` | Class → 名字 | 761 |
+| `field_75623_d` | **Integer → Class**（线上就是它） | 148 |
+| `field_75624_e` | Class → Integer | 108 |
+| `field_75622_f` | 名字 → Integer | 79 |
+
+只有 148 个实体有数字 id（`addMapping` 时才算），名字有 761 个是因为大量实体只登记了名字。
+`DumpEntity1.java` 不写死字段名：遍历所有 static Map，按 key/value 类型认出
+「Integer→Class」与「Class→String」两张，再用后者给前者补名字。
+
+导出结果 `packages/gtnh-data/data/entities.json`（148 条，含 `cls` 便于溯源）。
+
+### 34.2 校准
+
+- 原版 50 个实体里 49 个 id 与名字和 minecraft-data **完全一致**（第 50 个 Fishing Float 在
+  minecraft-data 里 `internalId` 就是 undefined），说明 mod 没有挤掉原版 id，表可以放心用；
+- 98 条类名不以 `net.minecraft` 开头（EnderZoo 的 9 个、GalaxySpace 的若干机器人、
+  `soundEntity` / `rangeEntity` 这类内部实体也在）。
+
+### 34.3 代码
+
+- `packages/gtnh-data/src/entities.js`：`EntityTypes`（`get/idOf/nameOf/names/modEntities`）+ `loadEntities()`；
+- `packages/mineflayer-fork/lib/gtnh/entities.js`：`gtnhEntityData(internalId)` 返回与
+  minecraft-data 同形的条目（宽高固定 0.6×1.8，`category: 'Unknown'`，另带 `gtnhClass`）；
+- `lib/plugins/entities.js:177`：`entityData ??= entityDataByInternalId[type] ?? gtnhEntityData(type)`，
+  两条 spawn 路径（`spawn_entity_living` 与 `spawn_entity`）都过 `setEntityData`，所以一处兜底就够。
+
+### 34.4 单测（6 条）
+
+gtnh-data：148 条、原版名字对齐、98 个 mod 实体、未知 id 返回 null、minecraft-data 的实体全覆盖。
+fork：mod 实体（EnderZoo 苦力怕 id=6）名字正确、原版 Creeper 仍走 minecraft-data（分类不被覆盖）、
+表外 id 仍落 unknown。**测试 213**（gtnh-data 67 / fork 91 / chunk 7 / protocol-fml 48）。
+
+### 34.5 已知残留
+
+`fetchEntity(id)` 对没收到 spawn 包的 id 也会建一个空实体（`name` 为 undefined、位置 (0,0,0)）；
+实测出生点附近 31 个实体里有 16 个是这种（服务器对未 spawn 的 id 先发了 metadata/velocity）。这是上游行为，
+不影响按名字找实体（这些条目 `name` 是 undefined 而不是某个真名），没动。

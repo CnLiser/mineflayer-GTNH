@@ -3,7 +3,7 @@
 **A mineflayer fork that actually works on GT: New Horizons (Minecraft 1.7.10 + Forge).**
 
 [![test](https://github.com/CnLiser/mineflayer-GTNH/actions/workflows/test.yml/badge.svg)](https://github.com/CnLiser/mineflayer-GTNH/actions/workflows/test.yml)
-[![tests](https://img.shields.io/badge/tests-205%20passing-brightgreen)](#测试)
+[![tests](https://img.shields.io/badge/tests-213%20passing-brightgreen)](#测试)
 [![node](https://img.shields.io/badge/node-%E2%89%A522-informational)](https://nodejs.org)
 [![MC](https://img.shields.io/badge/minecraft-1.7.10-blue)](#)
 [![GTNH](https://img.shields.io/badge/GTNH-2.9.0-orange)](#)
@@ -35,7 +35,7 @@
 git clone https://github.com/CnLiser/mineflayer-GTNH.git
 cd mineflayer-GTNH
 npm install
-npm test                              # 205 个测试，4 个 workspace 全绿
+npm test                              # 213 个测试，4 个 workspace 全绿
 ```
 
 需要一个 **GTNH 2.9.0 服务端**（`online-mode=false` 最省事）：
@@ -127,7 +127,8 @@ bot.modRecipesForSpecies('Arid')        // 蜜蜂/花突变（Binnie，产物或
 
 - **物理**：碰撞盒靠 `lib/gtnh/blockshape.js` 按注册名 + metadata 补（半砖 0.5 / 台阶 0.5 或上半 /
   栅栏·墙 1.5 / 地毯 1/16 / 雪层按层数）；没进表或形状特殊的方块（活板门、楼梯转角）仍按整块；
-- **实体**：只认原版 46 种 mob，mod 实体名对不上；
+- **实体**：148 个实体 id（98 个来自 mod）由 `data/entities.json` 提供名字，但表里没有碰撞箱，
+  mod 实体一律按 0.6×1.8 算；服务器用未 spawn 的 id 发 metadata 时 bot 会建一个空实体（上游行为，`name` 为空）；
 - **MUI2**：进度条值在机器空转时是 `NaN`（0/0），按 `NaN != NaN` 每 tick 都推；要全量快照就对同一方块再右键一次；
 - **真服（online-mode）**：协议上支持（`encryption_begin` 已接），但只用离线服验证过；
 - **动作**：射箭 / 钓鱼未做。

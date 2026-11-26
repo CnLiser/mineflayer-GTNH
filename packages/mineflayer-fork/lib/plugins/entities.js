@@ -2,6 +2,8 @@ const { Vec3 } = require('vec3')
 const conv = require('../conversions')
 const mojangson = require('mojangson')
 const { armAnimationParams } = require('../gtnh/actions')
+// GTNH-PATCH: mod 实体（98 个）不在 minecraft-data 里，落回服务器导出的实体表
+const { gtnhEntityData } = require('../gtnh/entities')
 // These values are only accurate for versions 1.14 and above (crouch hitbox changes)
 // Todo: hitbox sizes for sleeping, swimming/crawling, and flying with elytra
 const PLAYER_HEIGHT = 1.8
@@ -172,7 +174,7 @@ function inject (bot) {
   const entityDataByInternalId = Object.fromEntries(bot.registry.entitiesArray.map((e) => [e.internalId, e]))
 
   function setEntityData (entity, type, entityData) {
-    entityData ??= entityDataByInternalId[type]
+    entityData ??= entityDataByInternalId[type] ?? gtnhEntityData(type)
     if (entityData) {
       entity.type = entityData.type || 'object'
       entity.displayName = entityData.displayName

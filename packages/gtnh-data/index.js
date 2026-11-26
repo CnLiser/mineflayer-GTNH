@@ -24,6 +24,7 @@ const { RecipeBook, loadRecipeBook, WILDCARD, DATA_DIR } = require('./src/recipe
 const { TConstructData, loadTConstruct, T_CONSTRUCT_FILE } = require('./src/tconstruct')
 const { GtRecipes, loadGtRecipes, DATA_FILE: GT_RECIPES_FILE } = require('./src/gt-recipes')
 const { ModRecipes, loadModRecipes, MOD_RECIPES_FILE } = require('./src/mod-recipes')
+const { EntityTypes, loadEntities, ENTITIES_FILE } = require('./src/entities')
 const {
   FEATURES_1_7_10,
   GTNH_FEATURES,
@@ -70,5 +71,8 @@ module.exports = {
   listFeatures,
   TConstructData,
   loadTConstruct,
-  T_CONSTRUCT_FILE
+  T_CONSTRUCT_FILE,
+  EntityTypes,
+  loadEntities,
+  ENTITIES_FILE
 }
