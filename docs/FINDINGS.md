@@ -1917,3 +1917,54 @@ bot.digTime = (b) => bot.tconDigTime(b) * 1000   // 覆盖 mineflayer 只认原�
 ✓ 已取到 TGregworks:tGregToolPartPickaxeHead x8
 ✓ 压模机冒烟通过
 ```
+
+## 三十二、2026-11-26：第二批 NEI handler（Avaritia / HarvestCraft / WitchingGadgets / Et Futurum）
+
+**怎么挑的**：mods 目录 217 个 jar 里有 99 个 jar 的类名含 `nei`。先写 `ProbeScan1`（agent）
+扫「类名匹配 `nei.*handler|recipehandler|neiplugin|...` 的顶层类」，把每个 jar 的 NEI handler 列全；
+再对候选 mod 用 `ProbeScan1` 的反射模式列出 static 容器字段与单例里的实例容器字段，判断
+「配方表是不是一个能直接读的 List/Map」。
+
+### 32.1 本批四个 mod（合计 318 条）
+
+| mod | kind | 条数 | 表在哪 |
+| --- | --- | --- | --- |
+| Avaritia | extreme_crafting | 135 | `ExtremeCraftingManager.getInstance().getRecipeList()`（9x9，`List<IRecipe>`） |
+| HarvestCraft | cutting_board / cooking_pot | 51 / 63 | `CraftingManagerPamCuttingBoard` / `CraftingManagerPamPot` 的 `getInstance().getRecipeList()` |
+| HarvestCraft | animal_trap / fish_trap | 3 / 1 | `TrapRecipes.ANIMAL_TRAP_RECIPES` / `FISH_TRAP_RECIPES`（`Map<Item, List<WeightedItemStack>>`） |
+| WitchingGadgets | infernal_blast_furnace / spinning_wheel | 51 / 5 | `InfernalBlastfurnaceRecipe.recipes`、`SpinningRecipe.recipeList`（都是 public static List） |
+| Et Futurum | smithing_table | 9 | `SmithingTableRecipes.getInstance().getRecipes()` |
+
+`mod-recipes.json` 从 **8206 → 8524 条**（3.9MB），mod 数 11 → 15。
+
+### 32.2 三种新形状
+
+- **9x9 网格**：`ExtremeShapedOreRecipe` 是 `output` / `input`(Object[]) / `width`,`height`；
+  `ExtremeShapedRecipe` 是 `recipeWidth`/`recipeHeight`/`recipeItems`(ItemStack[])；
+  `ExtremeShapelessRecipe` 是 `recipeOutput`/`recipeItems`(List)。
+  81 格里大量是空的，**空格必须占位**，否则网格布局被压掉。
+  归一化时对带 `extra.w/h` 的配方**不删空 cell**（其余照旧删），测试断言 `ins.length === 81` 且存在空 cell。
+- **加权掉落**：`WeightedItemStack extends WeightedRandom$Item`，`stack` 是 public 字段，
+  权重在父类 —— SRG 名是 `field_76292_a`（不是 `itemWeight`，代码里两个都试）。
+  dump 写 `out: [{stack, weight}]`，归一化时拆成 `out` 里的普通 stack + `extra.weights` 数组。
+- **矿辞输入**：`InfernalBlastfurnaceRecipe.input` 不是 String 而是 `Utilities$OreDictStack`
+  （`key` String + `amount` int）。直接按 String 处理会得到 20/51 条空输入；
+  取 `key` 后走同一套 `oreAlt()`，`amount` 进 `extra.oreAmount`。
+
+### 32.3 探针/agent 的三个坑
+
+- `call(Class, "getInstance")` 会把 Class 当 receiver 传给静态方法 → `IllegalArgumentException`
+  被吞掉变成 null，整批导出静默为 0 条。静态方法要用 `invoke(null, ...)`（`staticCall`）。
+  这次 `DumpMods28` 就是这么全空、`DumpMods29` 才跑通。
+- `StringBuilder` 是 static 且不重置时，同一 JVM 里第二次 attach 会把上一次的结果一起写进文件
+  （`ProbeScan1` 第一次 82 行 + 第二次 192 行 = 274 行，看起来像「扫描结果混在一起」）。
+- JVM 缓存已加载的 agent 类，**改了探针代码必须换类名**（`DumpMods28→29→30→31→32`）。
+
+### 32.4 代码
+
+- `packages/gtnh-data/tools/jmx/src/ProbeScan1.java`（按 jar+正则扫容器字段与单例实例字段）、
+  `ProbeOne1.java`（打印某个 List 字段里前几个元素的某字段类型/值）、`DumpMods32.java`（本批最终 dumper）。
+- `packages/gtnh-data/tools/build-mod-recipes.js`：`FRESH_FILES` 加 `mod-recipes-batch2.jsonl`；
+  `normalize()` 支持「网格保位」与「加权掉落拆解」。
+- 单测：`gtnh-data/test/mod-recipes.test.js` 加 4 条（Avaritia 网格 / HarvestCraft / WitchingGadgets / Et Futurum），
+  fork `test/mod-recipes.test.js` 加 1 条；全仓 **202 测试**（gtnh-data 60 / fork 87 / chunk 7 / protocol-fml 48）。

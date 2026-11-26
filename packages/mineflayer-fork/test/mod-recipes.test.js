@@ -10,7 +10,7 @@ test('mod 配方：挂载后在 bot 上可查询', () => {
   attachRecipes(bot)
   const summary = bot.modRecipeSummary()
   assert.ok(summary.total > 5000)
-  assert.deepStrictEqual(bot.modRecipeMods(), ['ae2', 'bloodmagic', 'botania', 'enderio', 'forestry', 'galacticraft', 'ic2', 'railcraft', 'tconstruct', 'thaumcraft', 'witchery'])
+  assert.deepStrictEqual(bot.modRecipeMods(), ['ae2', 'avaritia', 'bloodmagic', 'botania', 'enderio', 'etfuturum', 'forestry', 'galacticraft', 'harvestcraft', 'ic2', 'railcraft', 'tconstruct', 'thaumcraft', 'witchery', 'witchinggadgets'])
   assert.ok(bot.modRecipeKinds('botania').includes('rune_altar'))
 })
 
@@ -47,6 +47,22 @@ test('mod 配方：第一次访问才解析（懒加载）', () => {
   assert.strictEqual(bot.modRecipeSummary().total, bot.modRecipeBook().total)
   // 两次访问返回同一实例（单例）
   assert.strictEqual(bot.modRecipeBook(), bot.modRecipeBook())
+})
+
+test('mod 配方：新一批 mod（Avaritia / HarvestCraft / WitchingGadgets / Et Futurum）', () => {
+  const bot = makeBot()
+  attachRecipes(bot)
+  const book = bot.modRecipeBook()
+  assert.deepStrictEqual(bot.modRecipeKinds('avaritia'), ['extreme_crafting'])
+  assert.strictEqual(book.forKind('extreme_crafting').length, 135)
+  assert.ok(book.forKind('extreme_crafting').some((r) => r.ins.length === 81))
+  assert.strictEqual(book.forKind('cutting_board').length, 51)
+  assert.strictEqual(book.forKind('cooking_pot').length, 63)
+  const trap = book.forKind('animal_trap')[0]
+  assert.ok(trap.extra.weights.some((w) => w > 0))
+  assert.strictEqual(book.forKind('infernal_blast_furnace').length, 51)
+  assert.strictEqual(book.forKind('spinning_wheel').length, 5)
+  assert.strictEqual(book.forKind('smithing_table').length, 9)
 })
 
 test('mod 配方：不污染 mineflayer 自己的 recipesFor 语义', () => {

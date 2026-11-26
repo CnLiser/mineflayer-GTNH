@@ -7,7 +7,7 @@ const { ModRecipes, loadModRecipes, MOD_RECIPES_FILE } = require('../index')
 const book = loadModRecipes()
 
 test('mod-recipes：总条数与各 mod 数量', () => {
-  assert.strictEqual(book.total, 8206)
+  assert.strictEqual(book.total, 8524)
   const s = book.summary()
   assert.strictEqual(s.byMod.thaumcraft, 2180)
   assert.strictEqual(s.byMod.forestry, 1280)
@@ -20,15 +20,22 @@ test('mod-recipes：总条数与各 mod 数量', () => {
   assert.strictEqual(s.byMod.ic2, 3)
   assert.strictEqual(s.byMod.galacticraft, 14)
   assert.strictEqual(s.byMod.witchery, 85)
-  assert.deepStrictEqual(book.mods(), ['ae2', 'bloodmagic', 'botania', 'enderio', 'forestry', 'galacticraft', 'ic2', 'railcraft', 'tconstruct', 'thaumcraft', 'witchery'])
+  assert.strictEqual(s.byMod.avaritia, 135)
+  assert.strictEqual(s.byMod.harvestcraft, 118)
+  assert.strictEqual(s.byMod.witchinggadgets, 56)
+  assert.strictEqual(s.byMod.etfuturum, 9)
+  assert.deepStrictEqual(book.mods(), ['ae2', 'avaritia', 'bloodmagic', 'botania', 'enderio', 'etfuturum', 'forestry', 'galacticraft', 'harvestcraft', 'ic2', 'railcraft', 'tconstruct', 'thaumcraft', 'witchery', 'witchinggadgets'])
 })
 
 test('mod-recipes：每条配方的形状合法（out 是数组、ins 是备选数组的数组）', () => {
   for (const r of book.recipes) {
     assert.ok(typeof r.mod === 'string' && typeof r.kind === 'string')
     assert.ok(Array.isArray(r.out) && Array.isArray(r.ins))
+    // 带网格尺寸的配方（Avaritia 9x9）用空数组占位，位置就是布局
+    const isGrid = r.extra && typeof r.extra.w === 'number' && typeof r.extra.h === 'number'
     for (const cell of r.ins) {
-      assert.ok(Array.isArray(cell) && cell.length > 0, 'cell 必须是非空备选数组')
+      assert.ok(Array.isArray(cell), 'cell 必须是数组')
+      if (!isGrid) assert.ok(cell.length > 0, '非网格配方的 cell 必须非空')
       for (const alt of cell) assert.ok(typeof alt.id === 'number' || typeof alt.ore === 'string')
     }
   }
@@ -207,4 +214,53 @@ test('mod-recipes：TConstruct 工具组装（53 条，部件→工具）', () =
   assert.strictEqual(pick.extra.handle ? pick.extra.handle[0] : null, 'TConstruct:toolRod')
   assert.ok(pick.ins.length >= 2)
   assert.ok(pick.ins.every((cell) => cell.every((st) => st.id > 0)))
+})
+
+test('mod-recipes：Avaritia 极值工作台（9x9 网格保留空格）', () => {
+  const av = book.forKind('extreme_crafting')
+  assert.strictEqual(av.length, 135)
+  const big = av.find((r) => r.ins.length === 81)
+  assert.ok(big, '应该有一条 9x9 的配方')
+  assert.strictEqual(big.extra.w, 9)
+  assert.strictEqual(big.extra.h, 9)
+  const withHoles = av.filter((r) => r.ins.some((c) => c.length === 0))
+  assert.ok(withHoles.length > 100, '空格必须保留位置（不然 81 格会被压缩掉）')
+  assert.ok(av.some((r) => r.ins.length === 45), '也有 9x5 的配方')
+  assert.ok(av.every((r) => r.out.length === 1))
+})
+
+test('mod-recipes：HarvestCraft 切菜板/烹饪锅/陷阱掉落', () => {
+  assert.strictEqual(book.forKind('cutting_board').length, 51)
+  assert.strictEqual(book.forKind('cooking_pot').length, 63)
+  assert.strictEqual(book.forKind('animal_trap').length, 3)
+  assert.strictEqual(book.forKind('fish_trap').length, 1)
+  const trap = book.forKind('animal_trap')[0]
+  assert.ok(trap.out.length >= 3)
+  assert.ok(Array.isArray(trap.extra.weights))
+  assert.strictEqual(trap.extra.weights.length, trap.out.length)
+  assert.ok(trap.extra.weights.some((w) => w > 0))
+  assert.strictEqual(trap.ins.length, 1)
+  assert.ok(trap.ins[0][0].name.startsWith('harvestcraft:') && trap.ins[0][0].name.endsWith('baitItem'))
+})
+
+test('mod-recipes：WitchingGadgets 地狱高炉/纺车', () => {
+  const inf = book.forKind('infernal_blast_furnace')
+  assert.strictEqual(inf.length, 51)
+  assert.ok(inf.every((r) => r.ins.length === 1), '每条都只有一种输入')
+  const one = inf.find((r) => r.ins[0][0] && r.ins[0][0].ore === 'clusterCinnabar')
+  assert.ok(one, '有一批只用矿辞的输入')
+  assert.strictEqual(one.time, 440)
+  assert.ok(one.extra.bonus && one.extra.bonus.id > 0)
+  assert.strictEqual(book.forKind('spinning_wheel').length, 5)
+  assert.ok(book.forKind('spinning_wheel').every((r) => r.out[0] && r.out[0].id > 0))
+})
+
+test('mod-recipes：Et Futurum 锻造台', () => {
+  const sm = book.forKind('smithing_table')
+  assert.strictEqual(sm.length, 9)
+  const pick = sm.find((r) => r.out[0].name === 'etfuturum:netherite_pickaxe')
+  assert.ok(pick)
+  assert.strictEqual(pick.extra.copyNbt, true)
+  assert.strictEqual(pick.ins.length, 2)
+  assert.strictEqual(pick.ins[0][0].name, 'minecraft:diamond_pickaxe')
 })

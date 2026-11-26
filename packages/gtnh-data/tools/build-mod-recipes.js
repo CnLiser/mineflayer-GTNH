@@ -69,7 +69,11 @@ function legacyExtra (r) {
   return extra
 }
 
+// 陷阱掉落写成 [{stack,weight}]；把它拆成 out 里的普通 stack + extra.weights
+const isWeighted = (x) => x && typeof x === 'object' && x.stack && typeof x.weight === 'number'
+
 function normalize (r, legacyFlat) {
+  const extra = legacyExtra(r)
   let cells
   if (legacyFlat) {
     // 旧格式：in 是扁平 stack 列表，每项自己就是一格
@@ -77,9 +81,17 @@ function normalize (r, legacyFlat) {
   } else {
     cells = (r.ins || r.in || []).map((c) => asAlternatives(c))
   }
-  // 去掉完全空的格子（老格式里的 null 占到）
-  cells = cells.filter((c) => c.length > 0).map((c) => c.map(fixId))
-  const outArr = (Array.isArray(r.out) ? asAlternatives(r.out) : (isStack(r.out) ? asAlternatives(r.out) : [])).map(fixId)
+  // 带网格尺寸的配方（Avaritia 9x9）保留空格，位置就是布局；其余去掉完全空的格子
+  const hasGrid = extra && typeof extra.w === 'number' && typeof extra.h === 'number'
+  if (!hasGrid) cells = cells.filter((c) => c.length > 0)
+  cells = cells.map((c) => c.map(fixId))
+  let outArr
+  if (Array.isArray(r.out) && r.out.some(isWeighted)) {
+    extra.weights = r.out.map((x) => x.weight)
+    outArr = r.out.flatMap((x) => asAlternatives(x.stack)).map(fixId)
+  } else {
+    outArr = (Array.isArray(r.out) ? asAlternatives(r.out) : (isStack(r.out) ? asAlternatives(r.out) : [])).map(fixId)
+  }
   return {
     mod: r.mod,
     kind: r.kind,
@@ -88,14 +100,14 @@ function normalize (r, legacyFlat) {
     fluidIn: (Array.isArray(r.fluidIn) ? r.fluidIn.filter(Boolean) : (r.fluidIn ? [r.fluidIn] : [])).concat(r.extra && r.extra.fluid ? [r.extra.fluid] : []),
     fluidOut: Array.isArray(r.fluidOut) ? r.fluidOut.filter(Boolean) : (r.fluidOut ? [r.fluidOut] : []),
     time: typeof r.time === 'number' ? r.time : null,
-    extra: legacyExtra(r)
+    extra
   }
 }
 
 
 // 多份 dump 会互相重复（例如 mods4 又带了蒸馏/坩埚/纺车）。只做**跨文件**去重：
 // 同一文件内部即使完全一样也保留（那可能是 mod 真的注册了两次）。
-const FRESH_FILES = ['mod-recipes-mods.jsonl', 'mod-recipes-mods2.jsonl', 'mod-recipes-mods3.jsonl', 'mod-recipes-mods4.jsonl', 'mod-recipes-mods5.jsonl', 'mod-recipes-mods6.jsonl']
+const FRESH_FILES = ['mod-recipes-mods.jsonl', 'mod-recipes-mods2.jsonl', 'mod-recipes-mods3.jsonl', 'mod-recipes-mods4.jsonl', 'mod-recipes-mods5.jsonl', 'mod-recipes-mods6.jsonl', 'mod-recipes-batch2.jsonl']
 const seenFresh = new Set()
 const fresh = []
 for (const f of FRESH_FILES) {
