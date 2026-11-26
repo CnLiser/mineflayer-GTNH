@@ -20,7 +20,7 @@ const opt = (name, fallback) => {
 }
 const username = opt('--username', 'forkBot')
 const tp = opt('--tp', null)
-const { loadServerMods } = require('mineflayer-gtnh/src/index')
+const { loadServerMods } = require('..')
 const { rcon } = require('protocol-fml/tools/rcon')
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))

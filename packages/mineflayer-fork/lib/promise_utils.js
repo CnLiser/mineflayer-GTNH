@@ -81,17 +81,22 @@ function onceWithCleanup (emitter, event, { timeout = 0, checkCondition = undefi
     }
   }
 
+  let timeoutTimer
   if (typeof timeout === 'number' && timeout > 0) {
     // For some reason, the call stack gets lost if we don't create the error outside of the .then call
     const timeoutError = new Error(`Event ${event} did not fire within timeout of ${timeout}ms`)
-    sleep(timeout).then(() => {
+    // GTNH-PATCH: 用可清理、不阻塞进程退出的 setTimeout 代替 sleep()。
+    // 原实现每个 once() 都留一个 20s 的 timer，离线单测跑完会白等 20s 才退出。
+    timeoutTimer = setTimeout(() => {
       if (!task.done) {
         task.cancel(timeoutError)
       }
-    })
+    }, timeout)
+    if (timeoutTimer.unref) timeoutTimer.unref()
   }
 
   task.promise.catch(() => {}).finally(() => {
+    if (timeoutTimer) clearTimeout(timeoutTimer)
     emitter.removeListener(event, onEvent)
     if (onAbort) signal.removeEventListener('abort', onAbort)
   })
@@ -104,12 +109,14 @@ function once (emitter, event, timeout = 20000) {
 }
 
 function withTimeout (promise, timeout) {
-  return Promise.race([
-    promise,
-    sleep(timeout).then(() => {
-      throw new Error('Promise timed out.')
-    })
-  ])
+  // GTNH-PATCH: 同 once()——超时 timer 要清掉且不阻塞进程退出，否则离线单测
+  // 每次 clickWindow 都留一个 5s/20s 的 timer。
+  let timer
+  const timedOut = new Promise((resolve, reject) => {
+    timer = setTimeout(() => reject(new Error('Promise timed out.')), timeout)
+    if (timer.unref) timer.unref()
+  })
+  return Promise.race([promise, timedOut]).finally(() => clearTimeout(timer))
 }
 
 module.exports = {

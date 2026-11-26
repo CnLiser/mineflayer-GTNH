@@ -96,8 +96,9 @@ packages/
   protocol-fml/          FML 握手 + 1.7.10 协议补丁（核心，所有包依赖它）
   prismarine-chunk-1.7/  1.7.10 区块/世界（24 位 id + 16 位 meta，ChunkStore）
   gtnh-data/             注册表 id↔名字、语言文件、1.7.10 feature 表
-  mineflayer-gtnh/       手写 bot 门面（M0–M4 的验证载体，现已基本被 fork 取代）
   mineflayer-fork/       ★ 上游 mineflayer 4.39 整份复制 + GTNH 补丁（主力）
+archive/
+  mineflayer-gtnh/       旧的手写 bot 门面（M0–M4 的验证载体），已归档，只作历史参考
 ```
 
 `protocol-fml` 是地基：它把「原版 1.7.10 协议」与「GTNH 实际线上格式」的差异都吸收掉，
@@ -125,7 +126,7 @@ packages/
 ### 4.1 FML 握手
 - 现象：连上就 `Mod rejections [FMLMod:gregtech{…}]` 被踢。
   → 真因：必须**原样回声**服务器的 mod 列表（297/296 条）。
-  → 修法：`resolveMods()` 从 `data/raw/{local-,}server-modlist.json` 读（`ping.js` 落盘）。
+  → 修法：`resolveMods()` 从 `data/raw/{local-,}server-modlist.json` 读；`ping.js` 默认只打印不落盘，要更新文件加 `--out`。
 - 现象：`Chunk size is 500316 but only -23973 was read`。
   → 真因：1.7.10 S→C custom_payload 长度是 **varshort**。
   → 修法：只取 restBuffer，再 `stripVarShortPayload`（按「声明长度==剩余字节」判 1/2/3 字节）。
@@ -209,14 +210,15 @@ gtnhFlag  : u8                  // 恒等于 count（x1→01, x2→02, x64→40�
 | 动作层（挖掘 / 攻击 / 使用 / 合成 / 熔炉 / 丢弃 / 吃） | ✅ |
 | M4.5 vendored fork | 🚧 登录→生成→世界→物理→挖掘→背包→窗口→机器 GUI→动作层全通（生存挖掘/攻击/用物品已验） |
 
-**测试：全仓 188 个**（gtnh-data 56 / prismarine-chunk-1.7 7 / protocol-fml 47 /
-mineflayer-gtnh 32 / mineflayer-fork 46），`npm test` 一把过。
+**测试：全仓 188 个**（gtnh-data 56 / prismarine-chunk-1.7 7 / protocol-fml 46 /
+mineflayer-fork 79），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
+能力等价地搬进了 fork（physics-tick 13 / chat 6 / support-feature 3 / inventory 5 / window 6）。
 
 ## 6. 冒烟工具
 
 ```bash
 # protocol-fml
-node packages/protocol-fml/tools/ping.js 127.0.0.1 54615          # 刷 mod 列表
+node packages/protocol-fml/tools/ping.js 127.0.0.1 54615          # 看服务端 mod 列表（不落盘）
 node packages/protocol-fml/tools/dump-registry.js 127.0.0.1 54615 # 存注册表
 node packages/protocol-fml/tools/world-smoke.js 127.0.0.1 54615 --seconds 22
 node packages/protocol-fml/tools/rcon.js "list"                   # RCON 单条命令
@@ -228,6 +230,13 @@ npm --workspace mineflayer-fork run machine-item-smoke    # 机器槽物品取�
 npm --workspace mineflayer-fork run mui-smoke             # 机器状态（控件流）
 npm --workspace mineflayer-fork run action-smoke          # 生存挖掘 / 攻击 / 使用物品
 npm --workspace mineflayer-fork run extruder-smoke        # GT 压模机：放电+太阳能+投料+电压校验+取件
+npm --workspace mineflayer-fork run craft-smoke           # 工作台合成
+npm --workspace mineflayer-fork run furnace-smoke         # 熔炉
+npm --workspace mineflayer-fork run drop-eat-smoke        # 丢弃 / 吃
+npm --workspace mineflayer-fork run window-smoke          # 箱子窗口（rcon setblock chest → 右键 → 读槽位）
+npm --workspace mineflayer-fork run smeltery-smoke        # TiC 冶炼炉
+npm --workspace mineflayer-fork run tool-mine-smoke       # 工具挖掘
+npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数据链路
 ```
 
 `machine-*` / `mui-*` 都针对用户在 `(33, 78, 19)` 放的那台**进阶合金炉**
@@ -242,7 +251,10 @@ npm --workspace mineflayer-fork run extruder-smoke        # GT 压模机：放�
 3. ~~生存模式挖掘~~：已验（`action-smoke`：沙子 750ms→实测 1135ms）。
 4. **物理细节**：半砖/台阶按整块算，一格坎必须跳（1.7 数据没有真实碰撞盒高度）。
 5. ~~动作补齐~~：使用物品 / 攻击 / 合成 / 熔炉 / 丢弃 / 吃 均已验（`action-smoke` / `craft-smoke` / `furnace-smoke` / `drop-eat-smoke`）。
-6. **fork 收尾**：把 `packages/mineflayer-gtnh` 的工具与测试逐步切到 fork，然后归档那个包。
+6. ~~fork 收尾~~：已完成——`loadServerMods` / `formatMessage`（+ `messageToJSON`）搬到
+   `lib/gtnh/{mods,chat}.js`，4 个 tool 改 require fork 门面，旧包的窗口/背包/物理/聊天/feature
+   测试在 fork 里重建（`test/helpers/offline-bot.js` 让 46 个插件离线可跑），包里内容已 `git mv` 到
+   `archive/mineflayer-gtnh/`（不在 `packages/*` 内，脱离 workspace）。
 
 ## 8. 记忆里容易忘的小事
 

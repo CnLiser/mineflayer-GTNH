@@ -1,8 +1,11 @@
 'use strict'
 
 /*
- * 服务器列表 ping：确认目标是不是 Forge 服，并顺手把服务器 ModList 存下来。
+ * 服务器列表 ping：确认目标是不是 Forge 服，并读出服务器 ModList。
  * Forge 1.7.10 会在 status 响应里塞 modinfo.modList —— 这是 FML 握手要回传的权威列表。
+ *
+ * 默认不落盘（server-modlist.json 在 git 里有一份，每次 ping 重写时间戳会把工作树弄脏）；
+ * 要更新这份数据时加 --out <file>（通常写 data/raw/server-modlist.json）。
  *
  * 用法：node tools/ping.js <host> <port> [--out <file>]
  */
@@ -42,9 +45,11 @@ async function main () {
   }
 
   if (mods) {
-    const out = outIdx >= 0
-      ? path.resolve(process.argv[outIdx + 1])
-      : path.join(__dirname, '..', 'data', 'raw', 'server-modlist.json')
+    if (outIdx < 0) {
+      console.log('（mod 列表没有落盘；要更新 data/raw/server-modlist.json 请加 --out）')
+      return
+    }
+    const out = path.resolve(process.argv[outIdx + 1])
     fs.mkdirSync(path.dirname(out), { recursive: true })
     fs.writeFileSync(out, JSON.stringify({ host, port, pingedAt: new Date().toISOString(), mods }, null, 2))
     console.log(`saved: ${out}`)

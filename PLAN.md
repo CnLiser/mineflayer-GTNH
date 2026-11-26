@@ -68,7 +68,7 @@ mineflayer-GTNH/
 │  ├─ protocol-fml/             # FML 客户端插件（nmp 之上）
 │  │  └─ src/{handshake,modid,multipart,ping,channels}.js
 │  ├─ prismarine-chunk-1.7/     # 1.7.10 区块实现（fork prismarine-chunk，加 src/pc/1.7）
-│  └─ mineflayer-gtnh/          # 主包：vendored mineflayer + 1.7.10 适配
+│  └─ mineflayer-fork/          # 主包：vendored mineflayer + 1.7.10 适配（旧手写包已归档到 archive/mineflayer-gtnh）
 │     └─ lib/…
 ├─ test/
 │  ├─ mock-fml-server.js        # 用 nmp createServer 模拟 Forge 握手（离线可跑）

@@ -25,7 +25,7 @@ const opt = (name, fallback) => {
 }
 const username = opt('--username', 'actionBot')
 const tp = opt('--tp', '20.5 76 20.5')
-const { loadServerMods } = require('mineflayer-gtnh/src/index')
+const { loadServerMods } = require('..')
 const { rcon } = require('protocol-fml/tools/rcon')
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))

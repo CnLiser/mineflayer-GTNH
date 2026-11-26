@@ -212,6 +212,10 @@ function supports (feature) {
 }
 
 function featureValue (feature) {
+  // GTNH 的覆盖也要反映在值查询里：mineflayer 的 bot.supportFeature 走这条
+  // （它要拿到 'metadata' / 8 这类值，不能只走布尔版），漏掉覆盖的话
+  // doesntHaveOffHandSlot 会被当成 true，副手槽和装备栏都按 5 项算。
+  if (feature in GTNH_OVERRIDES) return GTNH_OVERRIDES[feature]
   return FEATURES_1_7_10[feature]
 }
 

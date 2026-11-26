@@ -57,12 +57,19 @@ const plugins = {
 }
 
 const minecraftData = require('minecraft-data')
+// GTNH-PATCH: 旧包（mineflayer-gtnh）归档后搬过来的门面工具
+const { loadServerMods } = require('./gtnh/mods')
+const { formatMessage, messageToJSON } = require('./gtnh/chat')
 const { testedVersions, latestSupportedVersion, oldestSupportedVersion } = require('./version')
 const latestSupportedProtocolVersion = minecraftData.versionsByMinecraftVersion.pc[latestSupportedVersion].version
 if (!latestSupportedProtocolVersion) throw new Error(`Version '${latestSupportedVersion}' not supported by minecraft-data - is it up to date?`)
 
 module.exports = {
   createBot,
+  // GTNH-PATCH: 旧包（mineflayer-gtnh）归档后搬过来的门面工具
+  loadServerMods,
+  formatMessage,
+  messageToJSON,
   Location: require('./location'),
   Painting: require('./painting'),
   ScoreBoard: require('./scoreboard'),
@@ -143,6 +150,10 @@ function createBot (options = {}) {
     if (options.hideErrors) return
     console.warn('[mineflayer]', ...message)
   }
+  // GTNH-PATCH: 聊天组件里的 translate 键是整合包的，用 options.lang（gtnh-data
+  // 的 Lang 实例）渲染；没给就原样输出 translate 键。
+  bot.lang = options.lang ?? null
+  bot.formatMessage = (input) => formatMessage(input, options.lang)
   if (options.logErrors) {
     bot.on('error', err => {
       if (options.hideErrors) return

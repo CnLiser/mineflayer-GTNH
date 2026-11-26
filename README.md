@@ -35,7 +35,7 @@
 git clone https://github.com/CnLiser/mineflayer-GTNH.git
 cd mineflayer-GTNH
 npm install
-npm test                              # 188 个测试，5 个 workspace 全绿
+npm test                              # 188 个测试，4 个 workspace 全绿
 ```
 
 需要一个 **GTNH 2.9.0 服务端**（`online-mode=false` 最省事）：
@@ -54,8 +54,7 @@ npm --workspace mineflayer-fork run fork-smoke
 最小可用脚本：
 
 ```js
-const { createBot } = require('mineflayer-fork')
-const { loadServerMods } = require('mineflayer-gtnh')
+const { createBot, loadServerMods } = require('mineflayer-fork')
 
 const bot = createBot({
   host: '127.0.0.1', port: 54615, username: 'gtnh-bot',
@@ -84,8 +83,10 @@ packages/
 ├── protocol-fml/           # 地基：FML 握手 + 1.7.10 线格式补丁（GTNH_*_PACKETS）
 ├── prismarine-chunk-1.7/   # 1.7 区块/世界（上游没有 1.7 实现，自己写）
 ├── gtnh-data/              # 注册表 / 矿辞 / 配方 / TiC / 机器表 + 数据构建脚本
-├── mineflayer-fork/        # ★ 主力：vendored mineflayer 4.39 + lib/gtnh/* 补丁
-└── mineflayer-gtnh/        # 旧的手写 Bot（功能已被 fork 覆盖，保留作参考）
+└── mineflayer-fork/        # ★ 主力：vendored mineflayer 4.39 + lib/gtnh/* 补丁
+
+archive/
+└── mineflayer-gtnh/        # 旧的手写 Bot，已归档（只在 .probe/ 历史脚本里被引用）
 ```
 
 `docs/` 四份文档，按接手顺序读：

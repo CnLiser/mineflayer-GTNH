@@ -128,6 +128,8 @@ test('supports() 对未知 feature 返回 false，不抛异常', () => {
 test('GTNH 覆盖：backhand 有副手槽，原版判定仍然是 true', () => {
   assert.equal(supportsVanilla('doesntHaveOffHandSlot'), true)
   assert.equal(supports('doesntHaveOffHandSlot'), false)
+  // 值版也要尊重覆盖：mineflayer 的 supportFeature 走这条
+  assert.equal(featureValue('doesntHaveOffHandSlot'), false)
   assert.equal(GTNH_OVERRIDES.doesntHaveOffHandSlot, false)
   // 只有这一项被改，其它保持原版判定
   const changed = Object.keys(GTNH_FEATURES).filter((k) => GTNH_FEATURES[k] !== FEATURES_1_7_10[k])
