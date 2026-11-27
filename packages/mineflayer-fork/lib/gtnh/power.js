@@ -13,6 +13,16 @@ const { Vec3 } = require('vec3')
 /** 六个面的光标位置（16 分之几），与 tools/scene.js 的 CUR 一致 */
 const CUR = { 0: [8, 0, 8], 1: [8, 16, 8], 2: [8, 8, 0], 3: [8, 8, 16], 4: [0, 8, 8], 5: [16, 8, 8] }
 
+/** 九宫格：调输出面时点哪个格子（16 分之几），见 FINDINGS §45 */
+const GRID = {
+  left: [2, 8],
+  right: [14, 8],
+  up: [8, 2],
+  down: [8, 14],
+  back: [14, 14],          // 四个角都是「朝背面」，取一个就行
+  center: [8, 8]           // 什么都不改
+}
+
 /** 与工具类型对应的物品（GT 的工具都在 metatool.01 下，type 是老 id） */
 const TOOL_ITEM = { wrench: { id: 7649, damage: 16 }, cutter: { id: 7649, damage: 26 } }
 
@@ -25,7 +35,12 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 /**
  * 右键一个方块的某个面。
- * @param {object} opts { sneak, waitMs, cursor }
+ *
+ * GT 的「调输出面」不是选方块的哪个面，而是点**玩家看到的那个面上的九宫格**：
+ * 左中格 -> 输出朝左、右中格 -> 朝右、四个角 -> 朝背面（远离玩家那侧）、中心 -> 不动。
+ * 所以调面时 cursor 要按九宫格给，不要用面中心 (8,8)，那等于什么都不改（FINDINGS §45）。
+ *
+ * @param {object} opts { sneak, waitMs, cursor } cursor 是 16 分之几的面内坐标
  */
 async function useOn (bot, pos, face, opts = {}) {
   const c = CUR[face] ?? CUR[1]
@@ -141,6 +156,7 @@ function cablePlan (from, to) {
 
 module.exports = {
   CUR,
+  GRID,
   CABLE,
   TOOL_ITEM,
   useOn,
