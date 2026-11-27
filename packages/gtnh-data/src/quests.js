@@ -1,5 +1,10 @@
 'use strict'
 
+/** BetterQuesting 的任务名带 § 颜色码（§c§l…），显示和比较前都剥掉 */
+function stripColor (s) {
+  return String(s || '').replace(/\u00a7./g, '').trim()
+}
+
 /**
  * BetterQuesting 任务书（GTNH 的主线就是它）。
  *
@@ -24,8 +29,10 @@ function loadQuests (file = QUESTS_FILE) {
   return q
 }
 
+// 任务数据里的物品 id 带 `minecraft:` 前缀（minecraft:dirt），bot 背包里的不带（dirt）。
+// 索引和比较都按「去掉前缀 + meta」归一，否则背包永远算空。
 function itemKey (id, meta) {
-  return String(id) + ':' + (meta | 0)
+  return String(id).replace(/^minecraft:/, '') + ':' + (meta | 0)
 }
 
 class Quests {
@@ -64,13 +71,14 @@ class Quests {
     return this.quests[id] || null
   }
 
-  /** 按名字找（先精确，再包含） */
+  /** 按名字找（先精确，再包含）。任务名带 § 颜色码，比较前先剥掉。 */
   byName (name) {
     const all = Object.values(this.quests)
-    const exact = all.filter((q) => q.name === name)
+    const want = stripColor(name)
+    const exact = all.filter((q) => stripColor(q.name) === want)
     if (exact.length) return exact
-    const needle = String(name).toLowerCase()
-    return all.filter((q) => q.name.toLowerCase().includes(needle))
+    const needle = want.toLowerCase()
+    return all.filter((q) => stripColor(q.name).toLowerCase().includes(needle))
   }
 
   /** 名字或说明里包含关键词 */
@@ -80,7 +88,7 @@ class Quests {
     const out = []
     for (const q of Object.values(this.quests)) {
       if (out.length >= limit) break
-      if (q.name.toLowerCase().includes(needle) || (q.desc || '').toLowerCase().includes(needle)) out.push(q)
+      if (stripColor(q.name).toLowerCase().includes(needle) || (q.desc || '').toLowerCase().includes(needle)) out.push(q)
     }
     return out
   }
@@ -224,4 +232,5 @@ function dedupeMissing (list) {
   return Array.from(m.values())
 }
 
-module.exports = { loadQuests, Quests, itemKey, QUESTS_FILE }
+module.exports = {
+  stripColor, loadQuests, Quests, itemKey, QUESTS_FILE }

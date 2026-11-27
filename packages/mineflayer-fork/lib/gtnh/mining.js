@@ -40,8 +40,10 @@ async function mineBlock (bot, block, opts = {}) {
   const reach = opts.reach || 3
   const pos = block.position
   if (bot.entity.position.distanceTo(pos) > reach) {
-    // 站到方块旁边一格，别站到它正上方（挖自己脚下会掉下去）
-    const stand = new Vec3(pos.x + 1, pos.y, pos.z + 1) // 和矿同层站，别站到空中
+    // 站到方块**旁边的上一层**：脚下方块就是矿的邻居，有地面支撑，不会掉进坑里。
+    // （第一版站「和矿同层」的那格——地表挖矿时那格是空气，bot 会掉下去；
+    //   另一版站「矿正上方」，挖掉后自己就掉进坑。）
+    const stand = new Vec3(pos.x + 1, pos.y + 1, pos.z)
     const ok = await bot.goto(stand, { dig: opts.dig !== false, timeoutMs: opts.timeoutMs || 20000 })
     // 走不过去但还在服务端的方块交互半径里（1.7 约 5 格），就直接挖——别白跑一趟
     if (!ok && bot.entity.position.distanceTo(pos) > 5) return false

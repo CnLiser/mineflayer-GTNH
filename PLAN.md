@@ -231,7 +231,7 @@ int dataSize
 | **M3 动作** ✅ | bot 骨架 ✅（连接/世界/实体/玩家/聊天/背包点击）；physics ✅、dig ✅、place ✅、移动包线序 ✅ | 脚本跑通"走到树前→挖 3×3 原木→进背包" | 5–8 天 |
 | **M4 GTNH 特性** | GT 机器 GUI、矿辞、自定义维度、配方 | 窗口层 ✅（箱子/工作台/熔炉实测）；GT 机器 GUI ✅（ModularUI2 隐式开窗，41 槽实测）；机器槽物品取出/放入 ✅（shift 点击 + 拿放点击，服务器真相校验）；控件流 ✅（ModularUI2 PacketSyncHandler，powerSwitch/hasError/电路/物品槽 实测）；合成 ✅；熔炉 ✅；丢弃 ✅；吃食物 ✅；矿辞/配方 ✅（agent 导出：矿辞 56279 / 合成 10233 / 熔炉 9683 / GT RecipeMap 175689 / 非 GT mod 配方 8906：Thaumcraft·Forestry·Railcraft·TConstruct·Botania·BloodMagic·IC2·AE2·EnderIO·Galacticraft·Witchery·Avaritia 135（9x9）·HarvestCraft 118（切菜板/锅/陷阱带权重）·WitchingGadgets 56（地狱高炉/纺车）·Et Futurum 9（锻造台）·GalaxySpace 32（火箭 T1..T8）·Binnie 350（培养器 160/蜜蜂突变 153/花突变 37）（含火盆/酿造仪式/浇筑台 1088·浇筑盆 16·工具组装 53））；多维度 ✅（单测）；TConstruct 静态数据 ✅ / 造镐造锤 ✅（Part Builder→Tool Station/Forge，锤 AoE 实测）（熔炼温度 956 / 燃料 4 / 工具材料 184 · 弓 180 · 箭 180） | 进行中 |
 | **M4.5 vendored fork** 🚧 | `packages/mineflayer-fork`：上游 mineflayer 4.39 复制 + GTNH 补丁（loader/blocks/world/physics/entities/inventory/game/movement） | 登录→生成→`blockAt` ✅、聊天 ✅、走路 4.32 格/秒 ✅、挖掘 ✅（创造模式）、背包 46 槽 ✅；方块/物品名 ✅（FML 注册表，Map 修正）、GT 机器 GUI ✅（ModularUI2）、机器槽物品双向搬动 ✅（machine-item-smoke 冒烟）、生存挖掘 ✅、攻击 ✅、使用物品 ✅、合成 ✅、熔炉 ✅、丢弃 ✅、吃食物 ✅ | 进行中 |
-| **M5 应用** 🚧 | pathfinder（A* + 挖穿/搭桥/跳跃 ✅）、挖矿循环 ✅、断线重连 ✅、任务脚本 | 示例机器人长期运行 | 依赖前序 |
+| **M5 应用** 🚧 | pathfinder（A* + 挖穿/搭桥/跳跃 ✅）、挖矿循环 ✅、断线重连 ✅、任务脚本 ✅（挖+合成，机器配方 blocked） | 示例机器人长期运行 | 依赖前序 |
 | **M6 任务书** | ✅ 数据导出（3814 条任务 / 46 条任务线）、`bot.questReady()` 报当前背包能交什么、`bot.questMissing()` 报还缺什么 | bot 能读任务书、报出下一步要做什么 | 已完成 |
 
 （估时按有经验的单人开发、测试环境随时可用计。）

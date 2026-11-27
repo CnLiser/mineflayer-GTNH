@@ -126,7 +126,7 @@ function main () {
     quests[q.id] = entry
     for (const t of entry.tasks) {
       for (const it of t.items || []) {
-        const key = it.id + ':' + it.meta
+        const key = String(it.id).replace(/^minecraft:/, '') + ':' + it.meta
         if (!byItem[key]) byItem[key] = []
         if (byItem[key][byItem[key].length - 1] !== q.id) byItem[key].push(q.id)
       }

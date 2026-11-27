@@ -234,6 +234,8 @@ function createBot (options = {}) {
     require('./gtnh/harvest').attachHarvest(bot)
     // GTNH-PATCH: 任务书（BetterQuesting 3814 条任务 / 46 条线）
     require('./gtnh/quests').attachQuests(bot)
+    // GTNH-PATCH: 任务脚本（读任务 → 计划 → 挖/合成/烧）
+    require('./gtnh/questrun').attachQuestRun(bot)
     // GTNH-PATCH: GTNH 矿辞 / 配方数据（bot.gtnhRecipes / bot.oreItems / bot.gtnhRecipesFor）
     require('./gtnh/recipes').attachRecipes(bot)
     // GTNH-PATCH: TiC 冶炼炉/浇筑辅助（结构判定、投料、点水龙头）

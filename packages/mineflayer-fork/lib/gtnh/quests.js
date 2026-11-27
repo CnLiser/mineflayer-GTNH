@@ -44,7 +44,11 @@ function attachQuests (bot) {
   /** 背包能交的任务；opts.line 可限定任务线 */
   bot.questReady = (opts) => load().readyWith(invItems(bot), opts)
   /** 交这个任务还缺什么 */
-  bot.questMissing = (id) => load().missingFor(id, invItems(bot))
+  bot.questMissing = (id) => {
+    const b = load()
+    const q = b.get(id) || (b.byName(id) || [])[0]
+    return q ? b.missingFor(q.id, invItems(bot)) : []
+  }
 
   /**
    * 任务缺的东西「怎么弄」——缺料里凡是能查到配方的，给出一条路线（一层层往下拆）。
@@ -66,11 +70,20 @@ function attachQuests (bot) {
   }
 }
 
+/** BetterQuesting 的任务名带 § 颜色码（§c§l…），比较和显示前都剥掉 */
+function stripColor (s) {
+  return String(s || '').replace(/\u00a7./g, '').trim()
+}
+
 /** 物品名（注册名字符串）→ 注册表里的数字 id；数字原样返回 */
 function idOf (bot, id) {
   if (typeof id === 'number') return id
   if (!bot.registry || !bot.registry.itemsByName) return null
-  const byName = bot.registry.itemsByName[id] || bot.registry.itemsByName[id.replace(/^minecraft:/, '')]
+  // GTNH 注册表里原版物品有的带 minecraft: 前缀、有的不带，两个方向都试
+  const short = String(id).replace(/^minecraft:/, '')
+  const byName = bot.registry.itemsByName[id] ||
+    bot.registry.itemsByName[short] ||
+    bot.registry.itemsByName['minecraft:' + short]
   return byName ? byName.id : null
 }
 
@@ -79,12 +92,20 @@ function recipeFor (bot, item) {
   const nid = idOf(bot, item.id)
   if (nid == null) return null
   try {
-    const vanilla = typeof bot.recipesFor === 'function' ? bot.recipesFor(nid, item.meta || null, 1, null) : []
+    // recipesFor 的最后一位要传 true（允许用工作台），传 null 会把 3x3 配方全滤掉
+    const vanilla = typeof bot.recipesAll === 'function'
+      ? bot.recipesAll(nid, item.meta || null, true)
+      : (typeof bot.recipesFor === 'function' ? bot.recipesFor(nid, item.meta || null, 1, true) : [])
     if (vanilla && vanilla.length) {
       const r = vanilla[0]
+      // delta 里产物自己是正数、原料是负数；只取原料，别把产物也算成「需要 -N 个自己」
+      const delta = (r.delta || []).filter((d) => d.count < 0)
+      const made = (r.delta || []).filter((d) => d.count > 0 && bot.registry.items[d.id] && bot.registry.items[d.id].name === itemNameOf(bot, bot.registry.items[d.id].id))
+        .reduce((n, d) => n + d.count, 0) || 1
       return {
         kind: 'craft',
-        inputs: (r.delta || []).map((d) => ({ id: itemNameOf(bot, d.id), meta: d.metadata, count: -d.count }))
+        outputCount: made,
+        inputs: delta.map((d) => ({ id: itemNameOf(bot, d.id), meta: d.metadata || 0, count: -d.count }))
       }
     }
   } catch {}
@@ -164,4 +185,4 @@ function invItems (bot) {
   }
 }
 
-module.exports = { attachQuests, recipeFor, howToMake, idOf }
+module.exports = { attachQuests, recipeFor, howToMake, idOf, stripColor }

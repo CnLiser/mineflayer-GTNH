@@ -298,6 +298,39 @@ console.log('前置：', bot.questChain(q.id).map((x) => x.name))
 底层数据在 `packages/gtnh-data/src/quests.js`（`loadQuests()` → `Quests` 实例，方法同上，
 只是不带 `bot.` 前缀），格式与任务类型的字段见 FINDINGS §37。
 
+### 6.5 任务脚本（让 bot 自己做一个任务）
+
+`questPlan` 只告诉你「缺什么、能怎么弄」，`questSteps` 把它变成一串可执行的步骤，
+`runQuest` 真的去执行：
+
+```js
+const plan = bot.questSteps('Soft Mallet Adventure')
+// => { quest: { id, name, line },
+//      steps: [ { kind:'mine',  item:'log',    meta:0, count:3, block:'log' },
+//               { kind:'craft', item:'planks', meta:0, count:7, inputs:[...] },
+//               { kind:'craft', item:'stick',  meta:0, count:2, inputs:[...] } ],
+//      blocked: [],
+//      ready: false }
+
+const r = await bot.runQuest('Soft Mallet Adventure', { rounds: 6, radius: 24 })
+// => { plan, log: [{ round, kind, item, count, ok, reason? }], missing: [], ready: true }
+```
+
+规划规则（`planQuest`）：
+
+1. **工作台合成 / 熔炉** 优先——木板、木棍本身是方块，直接挖也拿得到，但有配方时按配方做。
+   配方一次产多个时按产出数换算（`outputCount`），不是「要 7 个就合成 7 次」。
+2. 没有再**挖**——先按物品名反查方块（`coal` → `coal_ore`），GT 的矿统一是
+   `gregtech:gt.blockores`，只有名字本身是「某矿」才回落到它。
+3. 都不行就看有没有**机器配方**（GT 机器 / mod 机器），有就进 `blocked` 并写「需要什么机器」，
+   这一层不执行——机器配方要开 GUI、放流体，不在自动脚本的能力范围内。
+
+执行规则（`runQuest`）：按轮重算，每轮重新 `planQuest`（背包变了缺料就少），
+连续一轮零进展就停。挖掘用「背包净增」判断成功，不信任 `mineNearby` 的返回值。
+
+到 `ready: true`（`missing` 为空）就算做完了——交任务本身还得玩家/脚本去点任务书，
+这部分没做。
+
 ## 7. 聊天
 
 ```js

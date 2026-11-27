@@ -166,6 +166,14 @@ async function equipToolFor (bot, block, opts = {}) {
   if (!bot.inventory || typeof bot.inventory.items !== 'function') return { ok: true, tool: null, need }
   const candidates = findTools(bot, need.tool)
   if (!candidates.length) {
+    // GT 禁的是「镐」这一类工具（石/铁/金/钻石镐），别的工具类不管：泥土沙子（铲）
+    // 空手就能挖，木板泥土也不拦。需要镐的方块（石头、各种矿）才必须找到木镐或匠魂镐。
+    // 镐（矿/石头）、扳手（机器）、剪线钳（线缆）这三类必须找到工具；
+    // 其余（铲/斧/剪刀等，且等级 0）空手也能挖，不拦。
+    const strict = need.tool === 'pickaxe' || need.tool === 'wrench' || need.tool === 'cutter'
+    if (!strict && (need.level | 0) <= 0) {
+      return { ok: true, tool: null, need }
+    }
     const banned = bot.inventory.items().filter((it) => isBannedPickaxe(it.name))
     const extra = banned.length ? `；背包里的 ${banned.map((b) => b.name).join(' / ')} 被 GT 禁了，只能用木镐或匠魂的镐（GT 没有镐）` : ''
     return { ok: false, reason: `没有${need.tool}（方块 ${block.name} 需要）${extra}`, need }
