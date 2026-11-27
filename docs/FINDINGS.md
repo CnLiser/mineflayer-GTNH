@@ -2278,3 +2278,106 @@ if (bot.blockAt(bot.entity.position) != null) { // otherwise the chunk is unload
 **到这里 NEI 的静态配方表算挖完了**：原版 + GT 的 175 689 条 + 17 个 mod 的 8906 条，
 剩下能想到的候选都验证过没有静态表。再往下的「配方」类扩展只能走运行时注册表
 （AE2/EnderIO/IC2 那类实例 API），或者转做别的东西（比如 BetterQuesting 的任务数据）。
+
+---
+
+## 三十七、2026-11-27：任务书（BetterQuesting 3814 条）
+
+GTNH 的任务书是 BetterQuesting 管的，3814 条任务、46 条线。它既不是配方表也不是
+NEI handler，是另一套数据，但价值一样：`bot` 能读任务书，才能回答「我现在能交哪些
+任务、还缺什么」。这一节记数据怎么导、格式长什么样、踩了什么坑。
+
+### 37.1 表在哪
+
+jar：`G:\mc\GTNH2.9.0-server\mods\BetterQuesting-3.8.92-GTNH.jar`。两个静态单例：
+
+```java
+betterquesting.questing.QuestDatabase.INSTANCE     // UuidDatabase<IQuest>   3814
+betterquesting.questing.QuestLineDatabase.INSTANCE // UuidDatabase<IQuestLine> 46
+```
+
+**坑一：key 是 UUID，不是数字 id。** `UuidDatabase` 提供 `keySet()` / `get(Object)`，
+接口上有 `getEntries()` 但实例没有实现。所以遍历是：
+
+```java
+QuestDatabase db = QuestDatabase.INSTANCE;
+for (UUID id : db.keySet()) {
+    IQuest q = db.get(id);
+}
+```
+
+**坑二：一条线的任务列表不是 `getQuests()`。** `QuestLine` 自己就继承了
+`UuidDatabase<IQuestLineEntry>`，线的任务就是它的 `keySet()`。任务的直接前置是
+`QuestInstance.getRequirements()`，返回 `Set<UUID>`。
+
+**坑三：1.7.10 的 NBT 没法按下标取元素。** `NBTTagList` 在 1.7.10 上只有
+`tagCount()`（SRG `func_74745_c`）和 `appendTag`，**没有 `get(int)`**；按参数签名
+反射匹配会撞上 `func_74744_a`（`removeTag`），那是真删元素的方法，删到越界就抛
+`IndexOutOfBoundsException: Index 1 out of bounds for length 1`。最后是反射读它私有的
+`tagList`（`java.util.List`）字段来取。同理 `NBTTagCompound.getTag(String)` 是
+`func_74781_a`，数字标签的值在私有 `data` 字段里，按 getter 返回类型（byte/short/
+int/long/float/double）选。
+
+探针 `DumpQuest13.java`（`args "<out>@@<mode>"`，`mode=peek|all`）一次导出：
+
+```json
+{"counts":{"quests":3814,"lines":46},
+ "quests":[{"id":"<uuid>","prereq":["<uuid>", ...],"nbt":{...}}],
+ "lines":[{"id":"<uuid>","quests":["<uuid>", ...],"nbt":{...}}]}
+```
+
+前置不在 NBT 里拆——NBT 存的是 `{questIDHigh, questIDLow}` 两个 long，拼回 UUID 会丢
+精度，所以 Java 侧直接输出 `getRequirements()` 的字符串数组。耗时 2.7 秒，10.6MB。
+
+### 37.2 前端字段长什么样
+
+任务的显示属性在 `nbt.properties.betterquesting`，**值本身是带引号的 JSON 字面量**，
+要 `JSON.parse` 两次：
+
+```json
+{"name":"\"Shadow Metal\"","desc":"\"...\"","icon":"{...}"}
+```
+
+`tasks[]` 每项有 `taskID`（`bq_standard:retrieval` 等）和 `requiredItems`；
+`rewards[]` 每项有 `rewardID`（`bq_standard:item` / `:choice` / `:questcompletion` / `:xp`）。
+每类的关键字段：
+
+| taskID | 字段 |
+| --- | --- |
+| `bq_standard:retrieval` / `optional_retrieval` / `crafting` | `requiredItems[{id, Damage, Count, OreDict}]` |
+| `bq_standard:fluid` | `requiredFluids[{FluidName, Amount}]` |
+| `bq_standard:hunt` | `target` + `required` |
+| `bq_standard:location` | `name` / `posX,posY,posZ` / `dimension` / `range` |
+| `bq_standard:meeting` | `target` |
+| `bq_standard:checkbox` | 没有可查字段（玩家自己勾） |
+
+分布：retrieval 3743、optional_retrieval 1400、checkbox 228、crafting 137、hunt 104、
+location 34、fluid 17、meeting 1。
+
+`tools/build-quests.js` 把 10.6MB 的 raw 压成 `data/quests.json`（5039 KB），顺手建
+`byLine` / `byItem` / `byTask` 三个索引——按物品反查「哪些任务要交它」全靠 `byItem`。
+
+### 37.3 用法
+
+```js
+const { loadQuests } = require('gtnh-data')
+const book = loadQuests()
+book.byName('Shadow Metal')                  // 模糊也搜
+book.chain(quest.id)                         // 从根到它的前置链（拓扑序）
+book.missingFor(quest.id, bot.inventory.items())
+book.readyWith(bot.inventory.items())        // 当前背包能交的
+```
+
+`forge` 侧对应 `bot.quests()` / `bot.questReady()` / `bot.questMissing(id)`。
+
+**坑四：物品字段两套写法。** 任务数据是 `{id, meta}`（`id` 是注册名字符串，如
+`gregtech:gt.metaitem.01`、`TaintedMagic:BlockShadowOre`），mineflayer 的物品是
+`{name, metadata}`。`inventoryCounts` 必须 `it.name || it.id` 加
+`it.meta != null ? it.meta : it.metadata`，否则背包永远算空——这个坑让 fork 的第一版
+测试直接挂掉。
+
+### 37.4 测试
+
+`packages/gtnh-data/test/quests.test.js` 9 条 + `packages/mineflayer-fork/test/quests.test.js`
+3 条，全离线：总数、按线/名字/物品反查、前置链拓扑序、材料齐 ready、缺料报 need/have、
+checkbox 记 unknown。

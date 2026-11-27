@@ -27,6 +27,7 @@ const { ModRecipes, loadModRecipes, MOD_RECIPES_FILE } = require('./src/mod-reci
 const { EntityTypes, loadEntities, ENTITIES_FILE } = require('./src/entities')
 const { toolFor: harvestToolFor, needs: needsTool, toolCounts: harvestToolCounts, HARVEST_FILE } = require('./src/harvest')
 const { gtToolKind, gtToolName, gtToolsOfKind, GT_TOOLS_FILE } = require('./src/gt-tools')
+const { Quests, loadQuests, QUESTS_FILE } = require('./src/quests')
 const {
   FEATURES_1_7_10,
   GTNH_FEATURES,
@@ -84,5 +85,8 @@ module.exports = {
   gtToolKind,
   gtToolName,
   gtToolsOfKind,
+  Quests,
+  loadQuests,
+  QUESTS_FILE,
   GT_TOOLS_FILE
 }

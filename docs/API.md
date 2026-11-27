@@ -250,6 +250,37 @@ if (!r.ok) console.log(r.reason)   // '没有wrench（方块 gregtech:gt.blockma
 等级（`need.level`）目前只用于报告，还没做「等级不够就换更好的工具」——实机挖不动高等级矿时，
 `bot.dig` 会超时，`_lastMineReason` 是「挖掘超时」。
 
+### 6.4 任务书（BetterQuesting）
+
+GTNH 的任务书导成了 `gtnh-data/data/quests.json`：3814 条任务、46 条任务线，
+带前置关系和「交什么物品」的索引。`bot` 上挂了一层查询，用来回答「现在能交哪些任务、
+还缺什么」。
+
+```js
+bot.quests()                   // 任务书对象（首次调用才加载，5MB JSON）
+bot.questLines()               // 46 条线的 { id, name }
+bot.questLine('Mass Processing')
+bot.questsOfLine('Mass Processing')
+bot.questByName('Shadow Metal')   // 先精确、再包含；返回数组
+bot.questSearch('steel', { limit: 20 })
+bot.questChain(questId)        // 从根到它，拓扑序，最后一个是它自己
+bot.questForItem('gregtech:gt.metaitem.01', 11368)   // 哪些任务要交它
+bot.questReady()               // 当前背包能交的任务（checkbox 之类记 unknown）
+bot.questMissing(questId)      // [{ name, id, meta, need, have, ore }]
+```
+
+一个典型的「该干什么」循环：
+
+```js
+for (const q of bot.questReady({ limit: 5 })) console.log('能交：', q.name)
+const q = bot.questByName('Shadow Metal')[0]
+console.log('还缺：', bot.questMissing(q.id))
+console.log('前置：', bot.questChain(q.id).map((x) => x.name))
+```
+
+底层数据在 `packages/gtnh-data/src/quests.js`（`loadQuests()` → `Quests` 实例，方法同上，
+只是不带 `bot.` 前缀），格式与任务类型的字段见 FINDINGS §37。
+
 ## 7. 聊天
 
 ```js
