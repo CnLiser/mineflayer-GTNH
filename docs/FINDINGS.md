@@ -2927,3 +2927,37 @@ machineCraft {"ok":true,"crafted":1,"panel":"basicmachine.extruder.tier.01","tri
 返回 `{"ok":true,"crafted":2,"panel":"basicmachine.extruder.tier.01","tried":[]}`。
 
 `MACHINE_SLOTS` 最终值：`{ power: 1, input: 2, special: 3, out: 4, inputs: [2] }`。
+
+## 四十八、2026-11-27：搭一套「电炉 + 铜线缆 + 太阳能」时定下来的两件事
+
+### 48.1 GT 机器物品的 damage 表（探针 `ProbeMachineList1`）
+
+GT 机器都是同一个方块 `gregtech:gt.blockmachines`（物品 id **3003**，`ItemMachines`），
+按 `damage` 区分型号。用 `packages/gtnh-data/tools/jmx/src/ProbeMachineList1.java`
+（反射 `gregtech.api.enums.ItemList` 的私有 `mStack` 字段，绕开 `get()` 返回 null 的问题）
+查到的常用值：
+
+| 机器 | 物品 | panel |
+| --- | --- | --- |
+| 基础电炉 | `3003:261` | `basicmachine.e_furnace.tier.01` |
+| 基础太阳能 | `3003:2733` | `basicgenerator.solarpanel.01` |
+| 铜线缆（绝缘） | `3003:1246` | — |
+
+放置方式：创造模式塞进快捷栏 → `block_place`（`location` = 目标格、`direction` = 1 顶面、
+`cursor` = 面中心）。放下后方块 `metadata` 是**朝向**（1..5），不是型号——读不出来。
+
+### 48.2 电炉「有电但不烧」的判据链
+
+按这个顺序看，一次就能定位：
+
+1. `powerSwitch:0` 是不是 true（用 `bot.muiSet(panel,'powerSwitch',true)` 打开）
+2. `powerfail:0` 是不是 false（true = 没电）
+3. `hasError:0` 是不是 false
+4. `auto_sync:<panel>:0`：
+   - 键不存在 → 没电
+   - `kind:'double'`、`value:null`（NaN）→ **有电、空转**（配方没匹配上）
+   - `0 ≤ value ≤ 1` → 正在烧
+
+实机：三台机器摆好、料（`minecraft:iron_ore`）放进 slot 2 后，1–3 全绿、第 4 项是 NaN，
+说明**电通了、配方没匹配**——电炉要的输入格式与原版 `iron_ore` 不同（待确认是 GT 的矿石
+`gt.blockores` 还是 `metaitem.01` 的粉碎矿）。
