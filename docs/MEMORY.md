@@ -218,9 +218,9 @@ gtnhFlag  : u8                  // 恒等于 count（x1→01, x2→02, x64→40�
 | 动作层（挖掘 / 攻击 / 使用 / 合成 / 熔炉 / 丢弃 / 吃） | ✅ |
 | M4.5 vendored fork | 🚧 登录→生成→世界→物理→挖掘→背包→窗口→机器 GUI→动作层全通（生存挖掘/攻击/用物品已验） |
 
-**测试：全仓 309 个**（gtnh-data 87 / prismarine-chunk-1.7 7 / protocol-fml 56 /
-mineflayer-fork 159），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
-能力等价地搬进了 fork（physics-tick 13 / blockshape 6 / chat 6 / support-feature 3 / inventory 5 / window 6 / entities 3 / reconnect 3 / pathfinder 12 / mining 5 / harvest 10 / digtime 5 / quests 6 / modularui 3）。
+**测试：全仓 314 个**（gtnh-data 87 / prismarine-chunk-1.7 7 / protocol-fml 56 /
+mineflayer-fork 164），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
+能力等价地搬进了 fork（physics-tick 13 / blockshape 6 / chat 6 / support-feature 3 / inventory 5 / window 6 / entities 3 / reconnect 3 / pathfinder 12 / mining 5 / harvest 10 / digtime 5 / quests 6 / modularui 3 / machinecraft 8 / power 5）。
 
 ## 6. 冒烟工具
 

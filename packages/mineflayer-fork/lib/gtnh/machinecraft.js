@@ -11,6 +11,7 @@
 //   [0] 输入1  [1] 形状1  [2] 输入2  [3] 形状2  [4] 输出
 // 合金炉这类只有输入/输出的机器用 0/2/4，压模机用 0..4。
 
+const { Vec3 } = require('vec3')
 const { gtnWindowSlots, canRun } = require('./gtmachine')
 
 const MACHINE_SLOTS = { in1: 0, shape1: 1, in2: 2, shape2: 3, out: 4 }
@@ -44,6 +45,43 @@ function mapForMachine (name) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+// GTNH-PATCH: 打开方块 GUI 有两个硬条件——**距离 ≤ 2 格**、**中间是空气**。
+// 站着不动就点，只会在 3 格外或隔着方块时静默失败（服务端根本不动，客户端等到
+// `windowOpen` 超时），现象很像「机器坏了」。这里先判断，再绕着机器找能站的格。
+async function approachForGui (bot, block, opts = {}) {
+  if (!block) return false
+  if (!block.position) return true       // 拿不到坐标就别拦，交给 openBlock 自己报错
+  const pos = block.position
+  const reach = opts.reach == null ? 2 : opts.reach
+  const eye = () => bot.entity.position.offset(0, 1.62, 0)
+  // 假 bot / 缺能力（没有 goto、位置不是 Vec3）时直接放行，别把离线测试卡死
+  if (typeof bot.goto !== 'function') return true
+  const ok = () => {
+    try {
+      const center = pos.offset(0.5, 0.5, 0.5)
+      if (eye().distanceTo(center) > reach + 0.6) return false
+      return !!bot.canSeeBlock(block)
+    } catch { return true }
+  }
+  if (ok()) return true
+  const around = []
+  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+    for (const dy of [0, -1, 1]) around.push(new Vec3(pos.x + dx, pos.y + dy, pos.z + dz))
+  }
+  around.sort((a, b) => bot.entity.position.distanceTo(a.offset(0.5, 0, 0.5)) - bot.entity.position.distanceTo(b.offset(0.5, 0, 0.5)))
+  for (const p of around) {
+    const at = bot.blockAt(p)
+    if (at && at.boundingBox === 'block') continue
+    const feet = bot.blockAt(p.offset(0, -1, 0))
+    if (!feet || feet.boundingBox === 'empty') continue
+    try {
+      await bot.goto(p.offset(0.5, 0, 0.5), { timeoutMs: opts.timeoutMs || 8000, dig: false })
+    } catch { continue }
+    if (ok()) return true
+  }
+  return false
+}
 
 // 探测机器接受哪些槽：把背包里的一叠东西挨个试放到 0..(玩家区起点-1)，
 // 放进去 700ms 后还在就说明收（GT 的合金炉实测 2/3/4 收、0/1 拒）。
@@ -177,6 +215,8 @@ async function machineCraft (bot, opts) {
     const block = m.block
     let win
     try {
+      const near = await approachForGui(bot, block, { timeoutMs: o.approachMs || 8000 })
+      if (!near) tried.push({ name: block.name, reason: '走不到机器 2 格内（GUI 要求 ≤2 格且中间是空气）' })
       win = await bot.openBlock(block)
     } catch (e) {
       tried.push({ name: block && block.name, reason: `打不开：${e.message}` })
@@ -187,13 +227,13 @@ async function machineCraft (bot, opts) {
       let panel = null
       for (let i = 0; i < 20 && !panel; i++) {
         panel = bot.modularPanels()[0]
-        if (!panel) await sleep(150)
+        if (!panel) await sleep(o.dryRun ? 0 : 150)
       }
       if (!panel) { tried.push({ name: block.name, reason: '不是 MUI2 界面（没有面板）' }); continue }
       for (let i = 0; i < 20; i++) {
         const st = bot.panelState(panel) || {}
         if (Object.keys(st).some((k) => /powerSwitch/i.test(k))) break
-        await sleep(150)
+        await sleep(o.dryRun ? 0 : 150)
       }
       const info = parsePanel(panel)
       if (!info) { tried.push({ name: block.name, panel, reason: '不认识的机器面板' }); continue }
@@ -208,7 +248,11 @@ async function machineCraft (bot, opts) {
       const need = (recipe.in || []).map((i) => ({ ...i, count: i.count || 1 }))
       const chk = canRun(recipe, info.tierName)
       const plan = { machine: info.name, panel, tier: info.tierName, map, recipe: { eu: recipe.eu, dur: recipe.dur, in: need, out: recipe.out } }
-      if (!chk.ok) { tried.push({ name: info.name, panel, reason: chk.reason }); continue }
+      if (!chk.ok) {
+        tried.push({ name: info.name, panel, reason: chk.reason })
+        if (o.dryRun) break            // 规划只需要第一台机器，不必把所有候选试一遍
+        continue
+      }
       if (o.dryRun) { await bot.closeWindow(win); return { ok: true, dryRun: true, ...plan } }
 
       // 放料：先查背包够不够，不够就别动窗口
@@ -331,4 +375,4 @@ function attachMachineCraft (bot) {
   bot.machineCraft = (opts) => machineCraft(bot, opts)
 }
 
-module.exports = { machineCraft, attachMachineCraft, parsePanel, mapForMachine, probeSlots, powerSourcesNear, MACHINE_SLOTS }
+module.exports = { machineCraft, attachMachineCraft, approachForGui, parsePanel, mapForMachine, probeSlots, powerSourcesNear, MACHINE_SLOTS }
