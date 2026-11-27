@@ -53,8 +53,17 @@ function attachRecipes (bot) {
   let gt = null
   const gtBook = () => (gt || (gt = loadGtRecipes()))
   bot.gtRecipeMaps = () => gtBook().mapNames()
-  bot.gtRecipesForOutput = (id, metadata) => gtBook().forOutput(id, metadata)
-  bot.gtRecipesForInput = (id, metadata) => gtBook().forInput(id, metadata)
+  // GT 配方表的索引键是数字 id，所以要先把注册名换成 id（别传名字进去，会永远返回空）
+  const numId = (v) => {
+    if (typeof v === 'number') return v
+    const reg = bot.registry && bot.registry.itemsByName
+    const hit = reg && (reg[v] || reg[String(v).replace(/^minecraft:/, '')] || reg['minecraft:' + v])
+    if (hit) return hit.id
+    const n = Number(v)
+    return Number.isFinite(n) ? n : undefined
+  }
+  bot.gtRecipesForOutput = (id, metadata) => gtBook().forOutput(numId(id), metadata)
+  bot.gtRecipesForInput = (id, metadata) => gtBook().forInput(numId(id), metadata)
   bot.gtRecipesForFluid = (name) => gtBook().forFluid(name)
   // 非 GT 的 mod 配方（Thaumcraft/Forestry/Railcraft/TConstruct/Botania/BloodMagic），第一次访问才解析
   let mods = null

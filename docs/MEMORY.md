@@ -218,8 +218,8 @@ gtnhFlag  : u8                  // 恒等于 count（x1→01, x2→02, x64→40�
 | 动作层（挖掘 / 攻击 / 使用 / 合成 / 熔炉 / 丢弃 / 吃） | ✅ |
 | M4.5 vendored fork | 🚧 登录→生成→世界→物理→挖掘→背包→窗口→机器 GUI→动作层全通（生存挖掘/攻击/用物品已验） |
 
-**测试：全仓 301 个**（gtnh-data 87 / prismarine-chunk-1.7 7 / protocol-fml 56 /
-mineflayer-fork 151），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
+**测试：全仓 309 个**（gtnh-data 87 / prismarine-chunk-1.7 7 / protocol-fml 56 /
+mineflayer-fork 159），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
 能力等价地搬进了 fork（physics-tick 13 / blockshape 6 / chat 6 / support-feature 3 / inventory 5 / window 6 / entities 3 / reconnect 3 / pathfinder 12 / mining 5 / harvest 10 / digtime 5 / quests 6 / modularui 3）。
 
 ## 6. 冒烟工具
@@ -320,6 +320,15 @@ npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数�
    验法只有一种：改完关掉 GUI 再打开——服务端不会把改过的值推回来。
    `muiClose`（closeGui 7）不关窗口，关窗口用 `bot.closeWindow`。
    这一条通了之后，8-② 的「机器配方 blocked」就可以往下做了。
+
+10. **机器配方执行**（2026-11-27 起）：`lib/gtnh/machinecraft.js` 的
+   `bot.machineCraft({ item, meta, at })` —— 开机器 → 从 panel 名认机器 → 找 GT 配方表
+   → 查电压 → 探槽位 → 放料 → 开机 → 轮询产物 → 取件。四个坑写进 FINDINGS §41：
+   机器槽不是 0..4（合金炉 0/1 拒收、2/3/4 收，要 `probeSlots` 探）、
+   `forOutput` 的键是数字 id（传名字静默返回空）、产物判断要连 metadata 比（否则输入料被当产物）、
+   机器没电不报错（`powerSwitch=true` + `powerfail=false` 但进度永远 NaN，超时时会扫周围电线）。
+   **还没接进 `runQuest`**：questrun 的机器配方仍进 `blocked`，下一步是把计划里的机器步骤
+   换成 `machineCraft` 调用；另外产物环节要有**通电的机器**才能实机验（本机那台合金炉没接电）。
 
 ## 8. 记忆里容易忘的小事
 

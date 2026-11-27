@@ -402,6 +402,38 @@ bot.closeWindow(bot.currentWindow)
 
 ⚠️ `bot.muiClose()`（`closeGui`）发了不报错但窗口不关，关窗口请用 `bot.closeWindow`。
 
+### 6.7 用机器做东西（machineCraft）
+
+```js
+// 站在机器旁边（或用 at 指定方块位置），让它按 GT 配方表做东西
+const res = await bot.machineCraft({
+  item: 'gregtech:gt.metaitem.01',
+  meta: 11300,              // 青铜锭
+  at: new Vec3(33, 78, 19), // 机器位置；省略就在 radius 内找
+  count: 1,
+  timeoutMs: 40000
+})
+// { ok:true, crafted:2, machine:'alloysmelter', tier:'MV', recipe:{...} }
+// 或 { ok:false, tried:[{ name:'alloysmelter', reason:'…' }] }
+```
+
+它会：打开机器 → 从 panel 名认出机器（`basicmachine.alloysmelter.tier.02`）→ 找对应的
+GT 配方表 → 挑输入最少的配方 → 查电压（`canRun`）→ 核对背包够不够 → **探测机器收哪些槽**
+→ 放料 → 开机（`muiSet(powerSwitch,true)`）→ 轮询所有机器槽等产物 → 取件。
+
+几个必须知道的点：
+
+- **机器槽不是 0..4**。实测合金炉窗口里 0/1 拒收物品、2/3/4 收，所以放料前会拿第一个料
+  挨个试放一遍（`probeSlots`），用真正收料的槽。别写死槽号。
+- **配方表的索引键是数字物品 id**，`bot.gtRecipesForOutput('gregtech:gt.metaitem.01', 11300)`
+  会先在内部把名字换成 id（传名字老版本会永远返回空）。
+- **产物判断要连 metadata 一起比**：GT 的 `metaitem.01` 几千种物品同名，只比名字会把输入料
+  当产物（曾经把「等 13 秒」误报成「成功做出 2 个」）。
+- **机器没电不会报错**：GT 机器断了电照样能「开机」（`powerSwitch=true`、`powerfail=false`），
+  但进度永远不动。超时时会顺带查机器周围有没有电线/电池，没有就写「八成没电」。
+
+`dryRun: true` 只规划不发包，用来先看会选中哪条配方。
+
 ## 7. 聊天
 
 ```js

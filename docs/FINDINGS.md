@@ -2623,3 +2623,52 @@ io.netty.handler.codec.DecoderException: java.lang.NullPointerException:
 - fork：`packages/mineflayer-fork/lib/gtnh/modularui.js` 的 `bot.muiSet` / `bot.muiToggle` /
   `bot.muiClick` / `bot.muiClose`，没有打开的窗口时返回 `false` 不发包。
 - 测试：protocol-fml 4 条（含「与真实抓包逐字节一致」）、fork 3 条（离线 bot 断言发出的通道与 id）。
+
+## 四十一、2026-11-27：让 bot 自己开机器做东西（machineCraft）
+
+MUI2 写路径通了之后，把「按配方做物品」落成 `lib/gtnh/machinecraft.js`：
+开机器 → 认机器 → 找配方 → 查电压 → 放料 → 开机 → 等产物 → 取件。
+四个坑都是实机踩出来的。
+
+### 41.1 机器槽不是 0..4
+
+GT BasicMachine 的老布局是 `[in1, shape1, in2, shape2, out]`，但 GTNH 的 MUI2 窗口不是。
+把 `metaitem.01:9300` 挨个试放，实测（41 槽窗口、`inventoryStart=5`）：
+
+| 槽 | 0 | 1 | 2 | 3 | 4 |
+| --- | --- | --- | --- | --- | --- |
+| 结果 | 拒收 | 拒收 | 收 | 收 | 收 |
+
+所以放料前要探测：拿第一个料挨个试放（`probeSlots`），700ms 后还在就算收。
+`auto_sync:<panel>:<n>` 的序号正好和窗口槽号对应，也能用来交叉验证。
+
+### 41.2 配方表的索引键是数字 id
+
+`GtRecipes.forOutput(blockId, metadata)` 的 `blockId` 是数字（`metaitem.01` = 7639），
+传注册名会**静默返回空**。`bot.gtRecipesForOutput` 现在会把名字换成 id 再查。
+
+### 41.3 产物判断要连 metadata 一起比
+
+`metaitem.01` 下几千种物品同名，只比 `name` 会把输入槽里的 9300 当成产物 11300，
+表现为「立刻就成功了，crafted=2」——假成功。必须 `name + metadata` 都比。
+
+同理，找窗口里那叠料时不能比 `count`：探测/放料会改变数量，按数量比会找不到。
+
+### 41.4 机器没电不会报错
+
+合金炉周围全是沙子、没有电线/电池，但：
+
+- `powerSwitch:0 = true`（开着）
+- `powerfail:0 = false`（没有电力失败）
+- `hasError:0 = false`
+- `auto_sync:<panel>:0 = NaN`（进度 0/0，一直空转）
+
+放进去的料留在槽里不动，等 13 秒也没有产物。所以超时分支会扫机器周围 3×3×3，
+没有 `/cable|wire|battery|generator|solar|turbine|dynamo|transformer|energy/i` 的方块就写
+「机器周围没有电线/电池，八成没电」。
+
+### 41.5 现在的状态
+
+机制全部走通（认机器、挑配方、电压检查、槽位探测、放料、开机、轮询、取件、失败原因），
+离线 8 条测试。实机验到「料放进机器、机器开着、诊断出没电」这一段；
+**产物需要一台接了电的机器**——本机那台合金炉没接电，没能验到出件。
