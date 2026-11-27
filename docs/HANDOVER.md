@@ -9,7 +9,7 @@
 ## 0. 一句话现状
 
 能连 **GTNH 2.9.0（MC 1.7.10）** 的 mineflayer fork：连服 → 区块/世界 → 物理 → 挖/放/攻击/用物品/吃/丢弃 → 箱子/工作台/熔炉/GT 机器 GUI → 合成/熔炉 → 配方数据（矿辞 + 原版 + GT 175689 + 17 mod 8906 + TiC 静态表 + 实体 148）→ **GT 压模机全链路**（放机器 → 太阳能供电 → 投料 → 电压校验 → 取件）。
-**268 个测试全过**，13 个冒烟脚本（12 联机 + 1 离线）。
+**269 个测试全过**，13 个冒烟脚本（12 联机 + 1 离线）。
 
 ## 1. 十分钟自检（照抄）
 
@@ -84,6 +84,8 @@ archive/
 槽位映射两套：**TiC 容器主背包在前，GT 容器快捷栏紧接机器槽**（`gtnWindowSlots`）。
 
 **C. 加一个 mod 的配方** → 复用 agent 流程（§5）：`ProbeInv` 找字段 → 写 `DumpModsNN` → 跑 `build-mod-recipes.js` 归一化 → `src/mod-recipes.js` 查询 → 补测试 + 卡片。
+
+**C2. 加一类非配方数据**（任务书 / 实体名 / 挖掘等级是三个现成例子）→ `DumpQuest13` / `DumpEntity1` / `DumpHarvest7` 看写法：agent 只负责把内存里的对象拍成 JSON，字段选择与瘦身放在 `tools/build-*.js`（`build-quests.js` 把 10.6MB 压到 5MB 并建三个索引），查询 API 放 `src/*.js`，fork 侧再包一层 `bot.*`。
 
 ## 5. Java agent 速查（导出内存数据用）
 

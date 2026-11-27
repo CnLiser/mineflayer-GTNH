@@ -14,7 +14,7 @@ GTNH（GregTech: New Horizons，MC 1.7.10 + Forge）的 mineflayer fork。
 
 ```bash
 npm install
-npm test            # 268 个测试，4 个 workspace，全部离线，不需要服务端
+npm test            # 269 个测试，4 个 workspace，全部离线，不需要服务端
 npm --workspace mineflayer-fork run recipes-smoke   # 离线冒烟：数据链路
 ```
 
@@ -28,7 +28,7 @@ npm run doctor                                             # 环境自检（缺�
 
 ## 铁律
 
-1. **改完必须 `npm test` 全绿**（268 个）。测试都离线，不许新增「必须有服务端才能跑」的测试。
+1. **改完必须 `npm test` 全绿**（269 个）。测试都离线，不许新增「必须有服务端才能跑」的测试。
 2. **新增协议格式 → `docs/FINDINGS.md` 加一节**（现象 / 字节级论证 / 怎么验证）。
    **新增 `bot.*` 方法 → 更新 `docs/API.md`**，否则下一个人找不到。
 3. **数据文件不是手写的**：`packages/gtnh-data/data/**` 由 Java agent 从服务端内存导出再转换

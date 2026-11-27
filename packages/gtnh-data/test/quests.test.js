@@ -97,3 +97,9 @@ test('概览：任务类型分布', () => {
   assert.strictEqual(s.byTask.retrieval, 3743)
   assert.ok(s.byTask.crafting > 0)
 })
+
+test('Count=0 的任务按「要一个」算，空背包不该有能交的任务', () => {
+  const q = quests.byName('Speedy Berries')[0]
+  assert.strictEqual(q.tasks[0].items[0].count, 1)
+  assert.deepStrictEqual(quests.readyWith([]), [])
+})

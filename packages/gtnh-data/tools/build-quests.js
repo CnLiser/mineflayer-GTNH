@@ -32,7 +32,9 @@ function stack (s) {
   if (!s) return null
   const id = unq(s.id)
   if (!id) return null
-  const out = { id, meta: s.Damage | 0, count: s.Count | 0 }
+  // BQ 里 Count=0 表示「只要一个」（常见于 requireOnlyOneItem / partialMatch 的任务），
+  // 当成 0 会让这种任务在空背包下就显示「能交」。
+  const out = { id, meta: s.Damage | 0, count: Math.max(1, s.Count | 0) }
   const ore = unq(s.OreDict)
   if (ore) out.ore = ore
   if (s.tag && Object.keys(s.tag).length) out.nbt = true
@@ -50,7 +52,7 @@ function task (t) {
   const out = { type: short }
   if (t.requiredItems) out.items = stacks(t.requiredItems)
   if (t.requiredFluids) {
-    out.fluids = t.requiredFluids.map((f) => ({ name: unq(f.FluidName), amount: f.Amount | 0 }))
+    out.fluids = t.requiredFluids.map((f) => ({ name: unq(f.FluidName), amount: Math.max(1, f.Amount | 0) }))
   }
   if (t.target) out.target = unq(t.target)
   if (t.required != null) out.count = t.required | 0
