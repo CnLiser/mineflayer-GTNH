@@ -2837,3 +2837,18 @@ machineCraft {"ok":true,"crafted":1,"panel":"basicmachine.extruder.tier.01","tri
 **踩的坑**：我之前的 `setOutputFace` 一直用面中心 `(8, 8)`，等于每次都点「中心格」= 什么都不改，
 所以无论点多少次「都没反应」。这也解释了为什么 `(35,78,19)` 的太阳能一直没给 `(34,78,19)` 的导线送电。
 
+### 45.1 剪线钳也是九宫格
+
+用户 m06725（原文）：「太阳能位置对了，34 78 19 这个锡导线没和太阳能连上，需要使用剪线钳右键操作连接，
+也会出现九宫格的图，和扳手一样，右键对应区域就能连接导线和机器，或者导线与导线」
+
+也就是说**连接导线不是「点方块的某个面」，而是点九宫格里朝向目标的那一格**：
+导线 (34) 要连东边的太阳能 (35)，就要在能看到 (34) 的前提下点九宫格里朝东的那一格。
+`connectCable` 现在也吃 `cursor`，和 `setOutputFace` 用同一套 `GRID` 常量。
+
+**还没验证**：哪一格对应「东」，取决于玩家面向（九宫格是相对玩家视角的）。
+最可靠的做法是读服务端那根导线的 TileEntity 里「连了哪几面」的位掩码，
+但写 `ProbeCable1.java` 时卡在拿 `MinecraftServer` 上（`DimensionManager.getWorld(0)`
+触发 log4j 的 context-classloader NPE，`FMLCommonHandler` 又撞 jarjar 的 IllegalAccessError），
+这条路下次再走。
+

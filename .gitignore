@@ -31,3 +31,6 @@ packages/gtnh-data/tools/jmx/mfgt*.txt
 packages/gtnh-data/tools/jmx/build[0-9]/
 packages/gtnh-data/tools/jmx/quest*.jar
 packages/gtnh-data/tools/jmx/item1*.jar
+packages/gtnh-data/tools/jmx/cable*.jar
+packages/gtnh-data/tools/jmx/mfcable*.txt
+packages/gtnh-data/tools/jmx/build/ProbeCable*.class
