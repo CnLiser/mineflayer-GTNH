@@ -254,7 +254,8 @@ npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数�
 
 1. **NEI 其它 handler**：矿辞 + 原版合成/熔炉 + GT 的 175689 条 RecipeMap + 十七个 mod 的 8906 条配方已导出。2026-11-26 第二批：Avaritia 极值合成 135（9x9 网格）/ HarvestCraft 切菜板 51·烹饪锅 63·陷阱 4（带权重）/ WitchingGadgets 地狱高炉 51·纺车 5 / Et Futurum 锻造台 9，共 318 条（见 FINDINGS §32）；第三批：GalaxySpace 火箭 32（T1..T8 各 4，材料 19–53 格）、Binnie 培养器 160、蜜蜂突变 153、花突变 37，共 382 条，物种用 `{species}` 表示（见 FINDINGS §33）。
    IC2 与 AE2 研磨机的 0 条是 GTNH 真的清空了（§24）；单例列表与探测方法见 §25；TConstruct 的熔炼温度/燃料/工具材料见 §27。
-   **还没覆盖**（下一步候选）：gendustry（配方走 `net.bdew.lib.recipes` XML loader，无静态表；`EnumMutationSetting` 只是配置）、cropsnh 作物（只有机器 ItemList，无配方表）、vendingmachine 交易（`NeiRecipeCache` 为空，数据在 `TradeDatabase` 实例）、enhancedlootbags 掉落表、OpenComputers、TwilightForest、BetterQuesting、NEIAddons 的树苗/蜜蜂。`binnie` 的 ExtraTrees 未做（只有蜜蜂/花突变与培养器）。
+   **剩下的候选都验证过了，没有独立配方表**（见 FINDINGS §36）：gendustry（`net.bdew.lib.recipes` XML loader）、cropsnh（只有机器 ItemList）、vendingmachine（数据在 `TradeDatabase` 实例）、enhancedlootbags（`LootGroups` 是类不是表）、TwilightForest（配方都进了原版 CraftingManager）、NEIAddons（只是 NEI 附加显示）。`binnie` 的 ExtraTrees 也没有突变表。
+   **唯一还值得看的是 BetterQuesting**：`QuestDatabase.INSTANCE` 有 3814 条任务、`QuestLineDatabase.INSTANCE` 46 条任务线——这不是配方，是任务书数据（任务要求/奖励/依赖），要做的话是另一个方向（见 PLAN.md 的 M6）。
    （`docs/FINDINGS.md` §21/§22/§23/§32/§33）。
 2. ~~MUI2 未解部分~~：已解——`auto_sync:<panel>:<n>` 是 MUI2
    `WidgetTree.collectSyncValues` 给「widget 自带 value」自动注册的 key；合金炉的 `:0`

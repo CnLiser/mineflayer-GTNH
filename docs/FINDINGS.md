@@ -2253,3 +2253,28 @@ if (bot.blockAt(bot.entity.position) != null) { // otherwise the chunk is unload
 原版工具（mcdata 认得，时间本来就不大）和创造模式不受影响；被禁的原版镐也不会被「提速」（它压根不在别名表里）。
 
 实机：TiC 镐挖石头，`digTime` 7500 → 562.5 ms，端到端 8 s → **3.2 s**（剩下的是服务端 tick 卡顿）。
+
+## 三十六、2026-11-27：NEI 静态表的最后四个候选——全部没有独立配方表
+
+§32/§33 之后还剩四个「有 NEI handler 类、但不确定有没有静态表」的 mod。用
+`packages/gtnh-data/tools/jmx/src/ProbeScan5.java`（`ProbeScan2` 的继任者，见下面的 loader 坑）
+扫了一遍，结论是**都不值得单独导**：
+
+| jar | 找到的容器 | 能不能当配方表 |
+| --- | --- | --- |
+| `BetterQuesting-3.8.92-GTNH.jar` | `QuestDatabase.INSTANCE` Map(3814) 条 QuestInstance、`QuestLineDatabase.INSTANCE` Map(46) | ❌ 是任务书数据，不是配方；另属一个维度 |
+| `NEIAddons-1.18.8.jar` | `NEIAddons.addons` List(2)、`GeneticsUtils.beePositionToType` Map(4) | ❌ 只是 NEI 的附加显示 |
+| `EnhancedLootBags-1.3.5.jar` | 无静态容器（`LootGroups` 是类定义，不是实例表） | ❌ |
+| `TwilightForest-2.7.45.jar` | 全是名字数组、生物蛋表、地图生成参数（`TFFeature.featureList` Array(256) 等） | ❌ 配方都注册进原版 CraftingManager，已在 vanilla 数据里 |
+
+补记一个探针 loader 的坑：在 GTNH 的 retrobootstrap（RFB）环境里
+`Class.forName("net.minecraft.item.ItemStack").getClassLoader()` 拿不到东西，
+会抛 `ClassNotFoundException: Class bytes are null for net.minecraft.item.ItemStack`。
+必须从 `net.minecraft.launchwrapper.Launch.classLoader`（`LaunchClassLoader`）取，退路依次是
+`Thread.currentThread().getContextClassLoader()` 和 `ClassLoader.getSystemClassLoader()`。
+`ProbeScan5` 就是这么做的，也顺手把「类只加载不初始化」（`forName(..., false, cl)`）和
+「初始化失败就跳过」分开，避免一个 mod 的客户端类炸掉整份扫描。
+
+**到这里 NEI 的静态配方表算挖完了**：原版 + GT 的 175 689 条 + 17 个 mod 的 8906 条，
+剩下能想到的候选都验证过没有静态表。再往下的「配方」类扩展只能走运行时注册表
+（AE2/EnderIO/IC2 那类实例 API），或者转做别的东西（比如 BetterQuesting 的任务数据）。
