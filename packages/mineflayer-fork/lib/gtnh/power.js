@@ -43,6 +43,11 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
  * @param {object} opts { sneak, waitMs, cursor } cursor 是 16 分之几的面内坐标
  */
 async function useOn (bot, pos, face, opts = {}) {
+  // 上一次的潜行可能还挂着；潜行时右键不会激活方块，会变成「放置」
+  if (bot.getControlState && bot.getControlState('sneak')) {
+    bot.setControlState('sneak', false)
+    await sleep(400)
+  }
   const c = CUR[face] ?? CUR[1]
   const cursor = opts.cursor ?? { x: c[0], y: c[1], z: c[2] }
   await bot.lookAt(new Vec3(pos.x + c[0] / 16, pos.y + c[1] / 16, pos.z + c[2] / 16), true)
@@ -60,8 +65,9 @@ async function useOn (bot, pos, face, opts = {}) {
     cursorZ: cursor.z
   })
   if (opts.sneak) {
-    await sleep(150)
+    await sleep(200)
     bot.setControlState('sneak', false)
+    await sleep(400)          // 让 stop_sneaking 真正到服务端
   }
   await sleep(opts.waitMs ?? 800)
 }
