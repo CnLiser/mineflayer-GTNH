@@ -220,7 +220,7 @@ gtnhFlag  : u8                  // 恒等于 count（x1→01, x2→02, x64→40�
 
 **测试：全仓 314 个**（gtnh-data 87 / prismarine-chunk-1.7 7 / protocol-fml 56 /
 mineflayer-fork 164），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
-能力等价地搬进了 fork（physics-tick 13 / blockshape 6 / chat 6 / support-feature 3 / inventory 5 / window 6 / entities 3 / reconnect 3 / pathfinder 12 / mining 5 / harvest 10 / digtime 5 / quests 6 / modularui 3 / machinecraft 8 / power 5）。
+能力等价地搬进了 fork（physics-tick 13 / blockshape 6 / chat 6 / support-feature 3 / inventory 5 / window 6 / entities 3 / reconnect 3 / pathfinder 12 / mining 5 / harvest 10 / digtime 5 / quests 6 / modularui 3 / machinecraft 8 / power 5 / keepalive 2）。
 
 ## 6. 冒烟工具
 
@@ -331,6 +331,10 @@ npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数�
    换成 `machineCraft` 调用；另外产物环节要有**通电的机器**才能实机验（本机那台合金炉没接电）。
 
 ## 8. 记忆里容易忘的小事
+
+- **掉线真因**：1.7.10 的 `keep_alive` 必须回显，fork 之前没实现，几分钟就 `socketClosed`，
+  而症状看起来像「服务器卡」（所有等回包的操作超时）。已加 `lib/plugins/keepalive.js`（FINDINGS §43）。
+- `bot.creative.setInventorySlot` 只在创造模式有效；生存模式静默超时，别误判成网络问题。
 
 - 用户给过的两个场景指令：本机 GTNH 服务端「可以操作这个场景启动、停止服务」（m00663/m00694）。
 - 抓真实客户端流量只能靠 **TCP 代理**（`.probe/tcpproxy2.js`，端口 54616/54617/54619），

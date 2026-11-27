@@ -34,6 +34,7 @@ const plugins = {
   game: require('./plugins/game'),
   health: require('./plugins/health'),
   inventory: require('./plugins/inventory'),
+  keepalive: require('./plugins/keepalive'),
   kick: require('./plugins/kick'),
   physics: require('./plugins/physics'),
   place_block: require('./plugins/place_block'),

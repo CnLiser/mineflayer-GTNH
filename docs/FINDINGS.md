@@ -2723,3 +2723,39 @@ GT BasicMachine 的老布局是 `[in1, shape1, in2, shape2, out]`，但 GTNH 的
 `approachForGui`：开窗前先检查「眼到方块中心 ≤ reach+0.6 且 `canSeeBlock`」，
 不满足就绕机器 8 个方向 × dy∈{0,-1,1} 找「身位空、脚下实心」的格子走过去再开。
 
+
+## 四十三、2026-11-27：掉线的真因——1.7.10 的 keep_alive 要回显
+
+### 43.1 现象
+
+连着跑几分钟的脚本会突然 `end: socketClosed`，日志里没有任何 kicking 原因；
+在它之前所有「等服务器回包」的操作（`creative.setInventorySlot`、`openBlock`）都会超时，
+很容易误判成「服务器卡了」。
+
+### 43.2 原因
+
+1.7.10 的服务端每 ~2 秒发一次 `keep_alive`（包 id `0x00`，载荷 `keepAliveId: i32`），
+**客户端必须原样回显**，不回就在服务端超时后被踢。
+GTNH 的 RFB/Forge 环境里这个包照样发，但我们的 fork 里没有任何地方处理它
+（`grep keep_alive packages/mineflayer-fork/lib` 之前是空的），所以心跳从来没回过。
+
+### 43.3 修法
+
+`packages/mineflayer-fork/lib/plugins/keepalive.js`（新插件，带 `GTNH-PATCH` 注释）：
+
+```js
+bot._client.on('keep_alive', (packet) => {
+  bot.emit('keepalive', packet.keepAliveId)
+  bot._client.write('keep_alive', { keepAliveId: packet.keepAliveId })
+})
+```
+
+实机验证：连上后 45 秒收到 22 次心跳并全部回显，`bot.entity` 始终非空（之前 20 秒左右就掉了）。
+
+### 43.4 顺带记下的一条
+
+`bot.creative.setInventorySlot` **只在创造模式有效**：生存模式下服务端直接忽略，客户端等到
+`Event updateSlot:36 did not fire within timeout of 5000ms` 才报错，很容易被当成网络问题。
+脚本里要么先 `gamemode 1`，要么别用 creative 给物品（`/give` 对 GT 的
+`gt.metaitem.01` / `gt.metatool.01` 一律无效，只有原版物品能用）。
+
