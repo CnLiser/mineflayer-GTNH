@@ -38,6 +38,23 @@ test('collectDrops 会朝掉落物走过去，捡完返回', async () => {
   assert.ok(picked >= 1)
 })
 
+test('collectDrops 认 1.7.10 的 Item（大写）实体名', async () => {
+  // 实测出来的坑：服务端把掉落物实体叫 `Item`，上游 mcdata 叫 `item`，
+  // 严格相等会让 bot 站在三个掉落物中间却一个也捡不到。
+  const visited = []
+  const bot = {
+    entity: { position: { distanceTo: () => 0 } },
+    entities: {
+      1: { name: 'Item', position: { x: 1, y: 1, z: 1, distanceTo: () => 1 } },
+      2: { name: 'zeppelin', position: { x: 90, y: 1, z: 90, distanceTo: () => 120 } }
+    },
+    goto: async (pos) => { visited.push(pos) }
+  }
+  const picked = await collectDrops(bot, { collectMs: 900, collectRadius: 5 })
+  assert.ok(visited.length >= 1)
+  assert.ok(picked >= 1)
+})
+
 test('挖不动（服务端不退 blockUpdate）时 mineBlock 返回 false，不会挂住', async () => {
   const block = { name: 'minecraft:coal_ore', position: { x: 0, y: 0, z: 0, distanceTo: () => 1, offset: () => ({ distanceTo: () => 1 }) }, boundingBox: 'block' }
   const bot = {

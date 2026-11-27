@@ -285,7 +285,7 @@ npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数�
    `lib/gtnh/harvest.js` 挂 `bot.toolNeeded / bot.findTools / bot.equipToolFor`，`mineBlock`
    挖之前先选工具：矿要镐（GT 的锤也算）、机器要扳手、线缆要剪线钳。实测三种方块都按预期拦/放（FINDINGS §35）。
    **还欠**：① `gt.blockores` 不在 harvest 表里（GT 覆盖 `canHarvestBlock`），现在按名字兜底成
-   pickaxe 0，没按材料分等级，挖不动高等级矿时不会自动换更好的工具；② 生存模式「挖掉→掉落物进背包」还没实机验过，
+   pickaxe 0，没按材料分等级，挖不动高等级矿时不会自动换更好的工具；② ~~生存模式「挖掉→掉落物进背包」还没实机验过~~ 已验（2026-11-27）：痛点不在挖，在捡——1.7.10 掉落物实体叫 `Item`（大写），`collectDrops` 用 `=== 'item'` 一个都匹配不到，改成 `/^item$/i` 后生存挖 2 块 coal 进了背包（FINDINGS §38）；
    还有个反直觉的规则：**原版镐只有木镐能用，石/铁/金/钻石镐被 GT 禁了**（实机：木镐 2.3 s 挖掉
    石头，钻石镐 20 s 不动，FINDINGS §35.7）。**GT 没有自己的镐**（`IDMetaTool01` 里没有 PICKAXE），
    能挖矿的是木镐、匠魂的镐（GT 材料做镐头）、GT 的硬锤。`harvest.js` 把被禁的镐排除在挑选之外，

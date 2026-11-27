@@ -67,8 +67,12 @@ async function collectDrops (bot, opts = {}) {
   const deadline = Date.now() + (opts.collectMs || 6000)
   let picked = 0
   while (Date.now() < deadline) {
+    // GTNH-PATCH（2026-11-27）：1.7.10 的掉落物实体注册名是 `Item`（大写），
+    // 上游 mineflayer 的 mcdata 里叫 `item`，严格相等会一个也捡不到——实测
+    // 三个掉落物就在脚边、背包却是空的。这里大小写都认。
     const drops = Object.values(bot.entities).filter((e) =>
-      e.name === 'item' && e.position && e.position.distanceTo(bot.entity.position) <= radius)
+      e && typeof e.name === 'string' && /^item$/i.test(e.name) &&
+      e.position && e.position.distanceTo(bot.entity.position) <= radius)
     if (!drops.length) break
     const it = drops[0]
     try { await bot.goto(it.position, { timeoutMs: 4000 }) } catch (e) { /* 捡不到就算了 */ }

@@ -2410,3 +2410,36 @@ fork 侧对应 `bot.quests()` / `bot.questReady()` / `bot.questMissing(id)` / `b
 `packages/gtnh-data/test/quests.test.js` 9 条 + `packages/mineflayer-fork/test/quests.test.js`
 3 条，全离线：总数、按线/名字/物品反查、前置链拓扑序、材料齐 ready、缺料报 need/have、
 checkbox 记 unknown。
+
+## 三十八、2026-11-27：掉落物实体在 1.7.10 叫 `Item`（大写），不是 `item`
+
+**现象。** 生存模式挖掉两块 `coal_ore`，`testforblock` 确认方块变空气，掉落物实体就在
+脚边两格内，但 `bot.mineNearby()` 返回后背包里没有 coal，`collectDrops` 一个也没走过去。
+
+**原因。** 1.7.10 的实体注册名是 `Item`（`EntityItem` 的 `getEntityString()`），而
+minecraft-data 给上游 mineflayer 的实体表里同一类叫 `item`。`mining.js` 的
+`collectDrops` 原本写 `e.name === 'item'`，严格相等在 GTNH 上一个都匹配不到：
+
+```
+实体: [ 'Item@123,63,119', 'Item@121,64,121', 'Item@122,64,120', ... ]
+      （全都是 Item，一个 item 都没有）
+```
+
+**修法。** `collectDrops` 改成 `/^item$/i.test(e.name)`，并加了 `typeof e.name === 'string'`
+保护（未 spawn 的实体 `name` 是 undefined，见 §34.5）。
+
+**验证。** 生存模式、匠魂镐（无 NBT，MiningSpeed=1）挖 2 块 `coal_ore`：
+
+```
+挖了 2 块，耗时 13768 ms
+附近掉落物: [ 'Item@123,63,119', 'Item@121,64,121', ... ]
+背包(挖后): [ 'TConstruct:pickaxex1', 'coalx1' ]
+>>> coal 进背包: ["coalx1"]
+```
+
+掉落物确实进了背包——这是「生存模式挖矿」全链路（选工具 → 算 digTime → 挖 → 捡）第一次
+端到端跑通。`packages/mineflayer-fork/test/mining.test.js` 加了一条用大写 `Item` 的用例。
+
+**顺带一条。** 掉落物会掉进挖开的坑里（实测 y 从 80 掉到 63/64），`collectDrops` 的
+`bot.goto` 会跟着走下去——这依赖 pathfinder 的有限下落（`MAX_FALL=4`），超过 4 格的深坑
+它不会追。
