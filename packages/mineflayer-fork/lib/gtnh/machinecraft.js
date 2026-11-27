@@ -14,7 +14,8 @@
 const { Vec3 } = require('vec3')
 const { gtnWindowSlots, canRun } = require('./gtmachine')
 
-const MACHINE_SLOTS = { in1: 0, shape1: 1, in2: 2, shape2: 3, out: 4 }
+// MTEBasicMachine 的字节码定的布局：0 存储、1..2 充放电、3 特殊槽（模）、5 起输入、5+n 起输出
+const MACHINE_SLOTS = { power: 1, special: 3, input: 5, out: 6 }
 const TIER_NAMES = ['ULV', 'LV', 'MV', 'HV', 'EV', 'IV', 'LuV', 'ZPM', 'UV', 'UHV', 'UEV', 'UIV']
 
 // panel 名 → { name, tier }
@@ -267,16 +268,14 @@ async function machineCraft (bot, opts) {
       }
       if (missing.length) { tried.push({ name: info.name, panel, reason: `背包缺料：${missing.join('、')}` }); continue }
 
-      // GT 的 MUI2 窗口里机器槽不是 0..4：实测合金炉 0/1 拒收、2/3/4 收。
-      // 所以先拿第一个料探一遍，用真正收料的槽依次放；最后一个留给产物。
-      // 每种料**分别**探一次：压模机的模槽只收模、料槽只收料，
-      // 拿一种样品探全部槽会把另一种料放错位置（实测：模和铁锭互换后机器不动）。
+      // GT 单方块机器的槽位是固定的（MTEBasicMachine 字节码）：
+      //   0 存储、1..2 充放电、3 特殊槽（压模机的模）、5 起输入、5+mInputSlotCount 起输出。
+      // 之前靠 probeSlots 猜，会把铁锭放进 0/1（充电槽），机器永远不动。
+      // 模/电路这类走「特殊槽」(slot 3)，其余按顺序进输入槽（slot 5 起）
+      const isSpecialItem = (it) => /metalPattern|mold|Shape|circuit/i.test(it.name || '')
       const slotOrder = []
-      for (let i = 0; i < need.length; i++) {
-        const probeItem = bot.inventory.items().find((it) => matchInput(it, need[i]))
-        const acc = probeItem ? await probeSlots(bot, probeItem) : []
-        slotOrder.push(acc[0] ?? (i < machineSlotCount(bot) ? i : MACHINE_SLOTS.in2))
-      }
+      let nextInput = MACHINE_SLOTS.input
+      for (const it of need) slotOrder.push(isSpecialItem(it) ? MACHINE_SLOTS.special : nextInput++)
       let si = 0
       let placedAll = true
       let putReason = ''
@@ -284,8 +283,7 @@ async function machineCraft (bot, opts) {
         const src = bot.inventory.items().find((it) => matchInput(it, input))
         const srcSlot = findWindowSlotFor(win, src)
         if (srcSlot < 0) { placedAll = false; putReason = `窗口里找不到 ${input.name}:${input.meta}`; break }
-        const dest = slotOrder[si++] ?? MACHINE_SLOTS.in2
-        // 目标槽里若是别的东西（上一轮的残留），先倒回背包
+        const dest = slotOrder[si++] ?? MACHINE_SLOTS.input
         const cur = win.slots[dest]
         if (cur && !matchInput(cur, input)) await clearSlot(bot, dest)
         const okPut = await putN(bot, dest, srcSlot, input.count)

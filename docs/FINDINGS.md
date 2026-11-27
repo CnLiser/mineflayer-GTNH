@@ -2795,3 +2795,22 @@ bot._client.on('keep_alive', (packet) => {
   （`powerSwitch=true`、`powerfail=false`、`hasError=false`、进度 NaN）。
 - 结论：料与模的位置已经对了，**卡在供电**——红石放 slot 0/1 都不行，
   下一步要么放一块真电池到电力槽，要么用发电机 + 导线（FINDINGS §42）。
+
+### 44.2 修法：按固定槽位放料，模走特殊槽
+
+`probeSlots` 那套「试放看哪个槽收」彻底不要了——GT 的槽位是**固定**的：
+
+- 输入：从 `5` 开始，第 i 个料放 `5 + i`
+- 特殊槽：模/电路这类放 `3`（按名字 `/metalPattern|mold|Shape|circuit/i` 认）
+- 输出：从 `5 + mInputSlotCount` 起，取件时全扫
+
+改完之后**实机第一次跑通**：
+
+```
+machineCraft {"ok":true,"crafted":1,"panel":"basicmachine.extruder.tier.01","tried":[]}  60.9 秒
+```
+
+（同一台压模机 `(39,78,19)`，用户在里面放了电池，输入 2 个铁锭 + 模 2。）
+
+之前失败的全部原因都是槽位：probeSlots 把铁锭留在 slot 0/1（存储/充放电槽），机器永远拿不到输入。
+

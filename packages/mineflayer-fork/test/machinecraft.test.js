@@ -16,7 +16,8 @@ test('mapForMachine 别名表兜住不一样的配方表名', () => {
 })
 
 test('槽位常量与 GT BasicMachine 一致', () => {
-  assert.deepStrictEqual(MACHINE_SLOTS, { in1: 0, shape1: 1, in2: 2, shape2: 3, out: 4 })
+  // MTEBasicMachine：0 存储 / 1..2 充放电 / 3 特殊槽 / getInputSlot()=5 / 输出 5+n
+  assert.deepStrictEqual(MACHINE_SLOTS, { power: 1, special: 3, input: 5, out: 6 })
 })
 
 test('dryRun 只规划，不开机器', async () => {
