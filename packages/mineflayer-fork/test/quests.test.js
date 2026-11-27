@@ -73,3 +73,44 @@ test('bot.questPlan 离线也能给出缺料（查不到配方时 how=null）', 
   assert.strictEqual(plan[0].how, null)
   bot.end()
 })
+
+test('BQ 的 uuid 编码与标准 UUID 互转', () => {
+  const { uuidToBq, bqToUuid } = require('../lib/gtnh/quests')
+  const u = '00000000-0000-0000-0000-000000000ac7'
+  assert.equal(uuidToBq(u), 'AAAAAAAAAAAAAAAAAAAKxw')
+  assert.equal(bqToUuid('AAAAAAAAAAAAAAAAAAAKxw'), u)
+  const u2 = '80c46e7c-5b51-4516-b7d0-b136d5ba0535'
+  assert.equal(bqToUuid(uuidToBq(u2)), u2)
+  assert.throws(() => uuidToBq('not-a-uuid'), /不是 UUID/)
+})
+
+test('submitQuest 没有 rcon 时说明原因', async () => {
+  const { bot } = await createOfflineBot({ username: 'noRcon' })
+  const r = await bot.submitQuest('Your First Night')
+  assert.equal(r.ok, false)
+  assert.match(r.reason, /rcon/)
+})
+
+test('submitQuest 用 rcon 发 bq_admin complete 并解析回复', async () => {
+  const sent = []
+  const fakeRcon = async (cmds) => {
+    sent.push(...cmds)
+    return ['Completed quest §9§lYour First Night for Player123']
+  }
+  const { bot } = await createOfflineBot({ username: 'Player123' })
+  const r = await bot.submitQuest('Your First Night', { rcon: fakeRcon, player: 'Player123' })
+  assert.equal(r.ok, true)
+  assert.equal(sent.length, 1)
+  assert.match(sent[0], /^bq_admin complete \S+ Player123$/)
+  assert.equal(r.quest, '00000000-0000-0000-0000-000000000000')
+})
+
+test('submitQuest 收到错误回复时 ok=false', async () => {
+  const { bot } = await createOfflineBot({ username: 'Player123' })
+  const r = await bot.submitQuest('Your First Night', {
+    rcon: async () => ['bq_admin complete <all|quest_id> [username|uuid]'],
+    player: 'Player123'
+  })
+  assert.equal(r.ok, false)
+  assert.match(r.reason, /bq_admin complete/)
+})

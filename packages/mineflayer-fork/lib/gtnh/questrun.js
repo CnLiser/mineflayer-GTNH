@@ -221,7 +221,13 @@ async function runQuest (bot, id, opts) {
     plan = planQuest(bot, id, o)
     if (progress === 0) break
   }
-  return { plan, log: all, missing: bot.questMissing(id), ready: plan.ready }
+  const res = { plan, log: all, missing: bot.questMissing(id), ready: plan.ready }
+  // 做到能交了就顺手交掉（BQ 的提交没有协议实现，走 bq_admin；没 rcon 就停在这）
+  if (res.ready && o.submit !== false && typeof bot.submitQuest === 'function') {
+    res.submit = await bot.submitQuest(id, { rcon: o.rcon })
+    if (res.submit.ok) res.done = true
+  }
+  return res
 }
 
 async function runStep (bot, step, o) {

@@ -155,6 +155,8 @@ function createBot (options = {}) {
   // GTNH-PATCH: 聊天组件里的 translate 键是整合包的，用 options.lang（gtnh-data
   // 的 Lang 实例）渲染；没给就原样输出 translate 键。
   bot.lang = options.lang ?? null
+  // 交任务要 bq_admin（管理命令），由使用方注入一个 rcon 函数；没有就只支持「做到 ready」
+  bot.rcon = options.rcon ?? null
   bot.formatMessage = (input) => formatMessage(input, options.lang)
   if (options.logErrors) {
     bot.on('error', err => {

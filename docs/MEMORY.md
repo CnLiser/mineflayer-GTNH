@@ -300,7 +300,10 @@ npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数�
    ③ ~~smelt 还没跑过~~ 已验（2026-11-27）：`bot.smeltItem` 实机把 2 个 iron_ore 烧成 1 个 iron_ingot；
    途中发现熔炉窗口不能用上游的 `putFuel/putInput/takeOutput`（`window.findItemRange` 在 GTNH 的
    4 字节 id 下匹配不到物品，报 `Can't find iron_ore in slots [3 - 39]`），改成自己 `clickWindow`；
-   ④ 计划里偶尔会多备料（按轮重算会重复挖）。
+   ④ 计划里偶尔会多备料（按轮重算会重复挖）；
+   ⑤ 交任务已解（2026-11-27）：BQ 的提交走 `BQ_NET_CHAN` 的 SimpleImpl 包（没实现），退路是
+   `bq_admin complete <b64uuid> <player>`——坑在 UUID 参数不是标准格式，是 `UuidConverter` 的
+   16 字节 URL-safe base64 去 padding（FINDINGS §39）；`bot.submitQuest` 需要注入 rcon。
 
 ## 8. 记忆里容易忘的小事
 

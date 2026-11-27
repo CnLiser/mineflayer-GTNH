@@ -51,6 +51,40 @@ function attachQuests (bot) {
   }
 
   /**
+   * 交任务。BetterQuesting 的提交是它自己的 GUI 按钮（不是 open_window、也不是 MUI2），
+   * 客户端要发 BQ_NET_CHAN 通道的 FML 自定义包——这个 fork 还没实现。
+   * 退路是服务器的管理命令，rcon 以控制台身份执行，效果同玩家点「提交」：
+   *
+   *   bot.submitQuest('I Want SOLIDS Not LIQUIDS!')
+   *   // 需要 createBot({ rcon: (cmds) => rcon(cmds, { host }) }) 或传 opts.rcon
+   *
+   * 注意：`bq_admin complete` 对「多选一」奖励是服务端替你选，不是玩家点选。
+   */
+  bot.submitQuest = async (id, opts = {}) => {
+    const run = opts.rcon || bot.rcon
+    if (typeof run !== 'function') {
+      return { ok: false, reason: '交任务需要 rcon（bq_admin 是管理命令）：createBot({ rcon }) 或传 opts.rcon' }
+    }
+    let q = null
+    try {
+      const b = load()
+      q = b.get(id) || b.byName(id)[0] || null
+    } catch {}
+    if (!q) return { ok: false, reason: `任务书里没有：${id}` }
+    const player = opts.player || bot.username || (bot._client && bot._client.username)
+    if (!player) return { ok: false, reason: '不知道玩家名：传 opts.player' }
+    let out
+    try {
+      out = await run([`bq_admin complete ${uuidToBq(q.id)} ${player}`])
+    } catch (e) {
+      return { ok: false, reason: `rcon 失败：${e.message}` }
+    }
+    const text = Array.isArray(out) ? out.join('\n') : String(out || '')
+    if (/Completed quest/i.test(text)) return { ok: true, quest: q.id, reply: text }
+    return { ok: false, quest: q.id, reason: text || 'rcon 没有回复' }
+  }
+
+  /**
    * 任务缺的东西「怎么弄」——缺料里凡是能查到配方的，给出一条路线（一层层往下拆）。
    *
    *   bot.questPlan('Shadow Metal')   // [{ name, need, have, how: { kind, inputs, next } | null }]
@@ -186,4 +220,23 @@ function invItems (bot) {
   }
 }
 
-module.exports = { attachQuests, recipeFor, howToMake, idOf, stripColor }
+/**
+ * BetterQuesting 的 QuestCommandComplete 不用标准 UUID 字符串，用的是
+ * `UuidConverter.encodeUuid`：16 字节（mostSig 8 + leastSig 8，大端）做
+ * URL-safe base64 并去掉 `=`。`bq_admin check/complete/reset` 的参数都是这个形式。
+ */
+function uuidToBq (uuid) {
+  const hex = String(uuid).replace(/-/g, '').toLowerCase()
+  if (hex.length !== 32) throw new Error(`不是 UUID：${uuid}`)
+  return Buffer.from(hex, 'hex').toString('base64').replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
+}
+
+function bqToUuid (b64) {
+  const raw = String(b64).replace(/-/g, '+').replace(/_/g, '/')
+  const buf = Buffer.from(raw, 'base64')
+  if (buf.length !== 16) throw new Error(`不是 BQ 的 uuid 编码：${b64}`)
+  const h = buf.toString('hex')
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
+}
+
+module.exports = { attachQuests, recipeFor, howToMake, idOf, stripColor, uuidToBq, bqToUuid }

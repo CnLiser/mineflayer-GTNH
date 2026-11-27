@@ -2443,3 +2443,55 @@ minecraft-data 给上游 mineflayer 的实体表里同一类叫 `item`。`mining
 **顺带一条。** 掉落物会掉进挖开的坑里（实测 y 从 80 掉到 63/64），`collectDrops` 的
 `bot.goto` 会跟着走下去——这依赖 pathfinder 的有限下落（`MAX_FALL=4`），超过 4 格的深坑
 它不会追。
+
+## 三十九、2026-11-27：交任务怎么交——BQ 的提交按钮不是窗口，`bq_admin` 的 UUID 是 base64
+
+**为什么不是「点一下窗口」。** BetterQuesting 的任务书是自己画的 GUI（`GuiQuesting`），
+提交按钮不走 `open_window` / `clickWindow`，也不走 MUI2。它走 BQ 自己的 FML 通道：
+
+```
+通道名     BQ_NET_CHAN                      （BetterQuesting.network = NetworkRegistry.newSimpleChannel）
+包体       PacketQuesting（SimpleImpl IMessage）：toBytes 里就是一个 NBTTagCompound
+handler    betterquesting/network/handlers/NetQuestAction
+动作       ACTION_CLAIM / ACTION_DETECT / ACTION_CLAIM_FORCE_CHOICE
+字段       TAG_ACTION(int) + TAG_QUEST_IDS(UUID 列表)
+```
+
+也就是说要自己发一个 `custom_payload`，通道 `BQ_NET_CHAN`，并且得在 FML 握手阶段把这个
+通道注册上（1.7.10 的 `NetworkRegistry` 不认没注册的通道）。**这一层没做**，代价是要在
+`protocol-fml` 里加 FML 的 channel registry 与 SimpleImpl 的 discriminator 路由。
+
+**退路：服务端管理命令。** `bq_admin` 是 BQ 自带的管理员命令，rcon 以控制台身份执行，
+效果和玩家点「提交」一样（`QuestCommandComplete` 直接走 `claimQuest`）：
+
+```
+bq_admin check    <username|uuid> <quest_id>
+bq_admin complete <all|quest_id> [username|uuid]
+```
+
+**坑：UUID 不是标准格式。** 第一版拿 `00000000-0000-0000-0000-000000000ac7` 去调，
+命令回 usage（`bq_admin complete <all|quest_id> [username|uuid]`），像是参数没解析。
+真正的参数是 `UuidConverter.encodeUuid`：16 字节（mostSig 8 + leastSig 8，大端）做
+**URL-safe base64 并去掉 `=`**：
+
+```
+00000000-0000-0000-0000-000000000ac7   ->  AAAAAAAAAAAAAAAAAAAKxw
+80c46e7c-5b51-4516-b7d0-b136d5ba0535   ->  gMRufFtRRRa30LE21boFNQ
+```
+
+换成 base64 形式后：
+
+```
+check    -> 98187148-... has not completed §9§lI Want SOLIDS Not LIQUIDS!
+complete -> Completed quest §9§lI Want SOLIDS Not LIQUIDS! for 98187148-...
+check    -> 98187148-... has completed §9§lI Want SOLIDS Not LIQUIDS!
+```
+
+**落地。** `bot.submitQuest(id, { rcon, player })`：有 rcon 就发 `bq_admin complete`，
+回复里有 `Completed quest` 算成功；没 rcon 返回原因（不硬失败）。`runQuest` 做到
+`ready: true` 后会自动调它，`opts.submit: false` 关掉。rcon 从 `createBot({ rcon })`
+注入——bot 自己不会去读 server.properties。
+
+**限制。** ① 这是管理员代交，跳过前置检查（正常玩家点提交时 BQ 会校验 `canSubmit`）；
+② 「多选一」奖励由服务端替你选，不是玩家点选；③ 没 rcon（比如联机服没给你 OP）就只能
+停在 `ready: true`。要真正走玩家路径，得照上面把 `BQ_NET_CHAN` 的 SimpleImpl 包实现出来。

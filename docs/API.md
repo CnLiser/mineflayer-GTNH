@@ -328,8 +328,22 @@ const r = await bot.runQuest('Soft Mallet Adventure', { rounds: 6, radius: 24 })
 执行规则（`runQuest`）：按轮重算，每轮重新 `planQuest`（背包变了缺料就少），
 连续一轮零进展就停。挖掘用「背包净增」判断成功，不信任 `mineNearby` 的返回值。
 
-到 `ready: true`（`missing` 为空）就算做完了——交任务本身还得玩家/脚本去点任务书，
-这部分没做。
+到 `ready: true`（`missing` 为空）后会自动交给 `bot.submitQuest`。
+
+交任务（BQ 的提交按钮不是窗口，走它自己的 FML 通道，这个 fork 没实现，退路是管理命令）：
+
+```js
+const rcon = require('protocol-fml/tools/rcon').rcon
+const bot = createBot({ host, port, username, rcon: (cmds) => rcon(cmds, { host }) })
+
+await bot.submitQuest('I Want SOLIDS Not LIQUIDS!')
+// => { ok: true, quest: '00000000-...-0ac7', reply: 'Completed quest ...' }
+// 没 rcon 时 => { ok: false, reason: '交任务需要 rcon（bq_admin 是管理命令）...' }
+```
+
+`bq_admin complete` 是管理员代交：跳过前置校验，多选一奖励由服务端选。要真正走玩家
+路径得实现 `BQ_NET_CHAN` 的 SimpleImpl 包（见 FINDINGS §39）。`runQuest` 的
+`opts.submit: false` 可以关掉自动提交。
 
 单独烧一炉：
 
