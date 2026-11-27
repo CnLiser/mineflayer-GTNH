@@ -269,10 +269,14 @@ async function machineCraft (bot, opts) {
 
       // GT 的 MUI2 窗口里机器槽不是 0..4：实测合金炉 0/1 拒收、2/3/4 收。
       // 所以先拿第一个料探一遍，用真正收料的槽依次放；最后一个留给产物。
-      const probeItem = bot.inventory.items().find((it) => matchInput(it, need[0]))
-      const accepted = probeItem ? await probeSlots(bot, probeItem) : []
-      const slotsAll = accepted.length ? accepted : Array.from({ length: machineSlotCount(bot) }, (_, i) => i)
-      const slotOrder = slotsAll.slice(0, Math.max(1, need.length))
+      // 每种料**分别**探一次：压模机的模槽只收模、料槽只收料，
+      // 拿一种样品探全部槽会把另一种料放错位置（实测：模和铁锭互换后机器不动）。
+      const slotOrder = []
+      for (let i = 0; i < need.length; i++) {
+        const probeItem = bot.inventory.items().find((it) => matchInput(it, need[i]))
+        const acc = probeItem ? await probeSlots(bot, probeItem) : []
+        slotOrder.push(acc[0] ?? (i < machineSlotCount(bot) ? i : MACHINE_SLOTS.in2))
+      }
       let si = 0
       let placedAll = true
       let putReason = ''

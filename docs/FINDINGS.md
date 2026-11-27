@@ -2759,3 +2759,25 @@ bot._client.on('keep_alive', (packet) => {
 脚本里要么先 `gamemode 1`，要么别用 creative 给物品（`/give` 对 GT 的
 `gt.metaitem.01` / `gt.metatool.01` 一律无效，只有原版物品能用）。
 
+
+## 四十四、2026-11-27：GT 单方块机器的槽位布局（从字节码拿到权威答案）
+
+`gregtech.api.metatileentity.implementations.MTEBasicMachine` 上直接有这几个方法，
+`javap -c` 看返回值就知道布局（别再靠 probeSlots 猜了）：
+
+| 方法 | 返回值 | 含义 |
+| --- | --- | --- |
+| `rechargerSlotStartIndex()` | **1** | 充电槽从 1 开始（放电动工具充电） |
+| `getSpecialSlotIndex()` | **3** | 特殊槽（压模机的「模」放这里） |
+| `getInputSlot()` | **5** | 第一个输入槽 |
+| `getOutputSlot()` | `5 + mInputSlotCount` | 第一个输出槽 |
+
+所以通用布局是：**0 = 电池/供电槽，1–2 = 充电槽，3 = 特殊槽（模/电路），5 起 = 输入，之后 = 输出**。
+
+用户 m06560 补充：单方块机器的电力槽（slot 0）可以放**电池**（充电或给机器供电）、
+也可以放**红石**直接给机器供电——这是不接发电机也能跑起来的最短路径。
+
+踩过的坑：按「0 起依次是输入」去放料（`MACHINE_SLOTS` 的旧假设），把铁锭放进 slot 1（充电槽）
+会被吞掉，机器当然不动；`probeSlots` 拿一种样品试所有槽也会把不同料放错位置
+（压模机的模槽只收模），现在改成**每种料各探一次**。
+
