@@ -2908,3 +2908,22 @@ machineCraft {"ok":true,"crafted":1,"panel":"basicmachine.extruder.tier.01","tri
    两块太阳能（`35` 与 `41`）现在都是满的，`auto_sync:0` 都是 1，与是否连线无关。
 
 **下一步**：需要一帧「连线成功」的现场，或者确认九宫格里「左/右」是相对玩家视角还是世界方位。
+
+### 46.1 槽位定案（用户连线成功后实机跑通）
+
+| 窗口槽 | 用途 | 验证 |
+| --- | --- | --- |
+| 0 | 存储槽 | 放东西进去机器不用它（用户原话「你放到了存储槽中」） |
+| 1 | 充放电槽 | 电池 `metaitem.01:32518` 放这里 |
+| 2 | 输入槽 | 铁锭 `metaitem.01:11019` 放这里 |
+| 3 | 特殊槽 | 压模机的模 `TConstruct:metalPattern:2` 放这里 |
+| 4 起 | 输出槽 | 产物 `TGregworks:tGregToolPartPickaxeHead:1500` 落这里 |
+
+验证方法（比等产物快得多）：放进料后看 `panelState` 的
+`auto_sync:<panel>:0` —— 从 `NaN` 变成 `0.x` 就是机器开始跑了。
+
+实机：铁锭进 2、模进 3 → `prog 0.21484375`、`★ 出产物了`；
+随后 `bot.machineCraft({item:'TGregworks:tGregToolPartPickaxeHead', meta:1500, at:(33,78,19)})`
+返回 `{"ok":true,"crafted":2,"panel":"basicmachine.extruder.tier.01","tried":[]}`。
+
+`MACHINE_SLOTS` 最终值：`{ power: 1, input: 2, special: 3, out: 4, inputs: [2] }`。

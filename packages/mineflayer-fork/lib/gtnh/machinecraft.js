@@ -18,7 +18,13 @@ const { gtnWindowSlots, canRun } = require('./gtmachine')
 // GT 单方块机器的窗口槽（实机校准，2026-11-27）：
 //   0、1 是输入（压模机：料进 0、模进 1；合金炉：两种料各占一个）
 //   留出 2 给「第三种料」（组装机之类），产物则**全扫**（不同机器不一样，(39) 是 4）
-const MACHINE_SLOTS = { input: 0, special: 1, out: 2, inputs: [0, 1, 2] }
+const MACHINE_SLOTS = {
+  power: 1,     // 0 存储槽、1 充放电槽（放电池/红石）
+  input: 2,     // 输入槽从 2 开始
+  special: 3,   // 特殊槽（压模机的模、电路板）
+  out: 4,       // 输出槽从 4 开始
+  inputs: [2]
+}
 const TIER_NAMES = ['ULV', 'LV', 'MV', 'HV', 'EV', 'IV', 'LuV', 'ZPM', 'UV', 'UHV', 'UEV', 'UIV']
 
 // panel 名 → { name, tier }
