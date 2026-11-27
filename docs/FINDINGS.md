@@ -2495,3 +2495,60 @@ check    -> 98187148-... has completed §9§lI Want SOLIDS Not LIQUIDS!
 **限制。** ① 这是管理员代交，跳过前置检查（正常玩家点提交时 BQ 会校验 `canSubmit`）；
 ② 「多选一」奖励由服务端替你选，不是玩家点选；③ 没 rcon（比如联机服没给你 OP）就只能
 停在 `ready: true`。要真正走玩家路径，得照上面把 `BQ_NET_CHAN` 的 SimpleImpl 包实现出来。
+
+### 39.5 把它实现了：BQ 通道的完整线格式（2026-11-27）
+
+上一节说「要真正走玩家路径得实现 `BQ_NET_CHAN`」。做完了——抓三个 BQ 的 S→C 包就够反推
+（BQ 发给客户端的 `main_sync` / `cache_sync` 用的是同一套包装）：
+
+```
+custom_payload
+  channel = 'BQ_NET_CHAN'
+  data    = [uint8 type=0][uint16 BE gzip 长度][gzip(分片 NBT)]
+
+分片 NBT = { size: int, end: byte, index: int, data: byte[] }
+  size  = payload **压缩后**的总字节数（切片拼起来正好等于它）
+  end   = 1 表示最后一片
+  index = 第几片（0 起）
+  data  = gzip(payload NBT) 的一个切片，每片最多 20480 字节
+
+payload NBT 第一个字段是 handler 的 ResourceLocation：
+  { ID: 'betterquesting:quest_action', action: int,
+    questIDs: [ { questIDHigh: int[2], questIDLow: int[2] } ] }
+```
+
+抓包样本（`main_sync`）：`00 00 84 1f 8b 08 ...` —— type=0、gzip 长度 132、后面就是 gzip 流。
+`quest_action` 的 action：`0 = claim`、`1 = detect`、`2 = claimForceChoice`。
+
+**写代码时踩的四个坑。**
+
+1. `prismarine-nbt` 的 `nbt.list()` 要 `{ type: 'compound', value: [...] }`，而且**元素不能是
+   `nbt.comp()` 的返回值**（那个带 `type/name/value` 外壳，会被当成 compound 的内容写进去，
+   写出来是 `{type:'compound', name:'', value:{...}}`）。要用 `nbt.comp({...}).value`。
+2. 所有字段都得是 `{ type, value }`（`nbt.string()` / `nbt.int()` / `nbt.byteArray()`）。直接塞
+   裸字符串和数字不会报错，但写出来的 NBT 是错的（实测解析回来只剩 `{type:'compound', value:{}}`）。
+3. `nbt.byteArray()` 写的是**有符号 byte**，塞 `0..255` 的 Buffer 会报
+   `value is out of range: 139`；反过来 `& 0xff` 才能拼回 Buffer。
+4. `nbt.parse()` 返回 `{ parsed, type, metadata }`，字段在 `parsed.value` 里——不是 `parsed` 本身。
+
+另外 `bq_admin` 两个子命令的**参数顺序不一样**（害我调了半小时）：
+`complete <all|quest_id> [username|uuid]`、`check <username|uuid> <quest_id>`、
+`reset [all|quest_id] [username|uuid]`。传反了只回 usage，看不出哪错了。
+
+**落地。** 编码器在 `packages/protocol-fml/src/gtnh/bqnet.js`（`encodeQuestAction` /
+`encodePackets` / `decodePacket` / `joinPackets`），`bot.submitQuest()` 默认走它，
+`via: 'rcon'` 才退回 `bq_admin complete`。服务端对失败是**静默**的（前置没做 / 物品不够
+都不回错），所以 `submitQuest` 在拿到 rcon 时顺带 `bq_admin check` 核对一次。
+
+实机三种情况：
+
+```
+前置没做         -> { ok: false, via: 'bq', reason: '服务端没接受（前置没完成或物品不够）',
+                      reply: 'fee5f94e-... has not completed Shadow Metal' }
+全新玩家 + 11 dirt -> { ok: true, via: 'bq', verified: true }
+已经交过的任务     -> { ok: true, via: 'bq', verified: true }   （服务端忽略，但不报错）
+```
+
+**还有一个没解的现象**：用 `bq_admin reset` 重置之后，同一个玩家的 BQ 通道 claim 会失败
+（`has not completed`），换一个全新玩家又立刻成功。怀疑 reset 只清了服务端进度、没触发
+`main_sync` 重推，客户端的可见任务状态对不上。正常玩不会 reset，先记着。

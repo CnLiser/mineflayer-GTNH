@@ -218,8 +218,8 @@ gtnhFlag  : u8                  // 恒等于 count（x1→01, x2→02, x64→40�
 | 动作层（挖掘 / 攻击 / 使用 / 合成 / 熔炉 / 丢弃 / 吃） | ✅ |
 | M4.5 vendored fork | 🚧 登录→生成→世界→物理→挖掘→背包→窗口→机器 GUI→动作层全通（生存挖掘/攻击/用物品已验） |
 
-**测试：全仓 282 个**（gtnh-data 87 / prismarine-chunk-1.7 7 / protocol-fml 48 /
-mineflayer-fork 140），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
+**测试：全仓 291 个**（gtnh-data 87 / prismarine-chunk-1.7 7 / protocol-fml 52 /
+mineflayer-fork 145），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
 能力等价地搬进了 fork（physics-tick 13 / blockshape 6 / chat 6 / support-feature 3 / inventory 5 / window 6 / entities 3 / reconnect 3 / pathfinder 12 / mining 5 / harvest 10 / digtime 5 / quests 6）。
 
 ## 6. 冒烟工具
@@ -296,14 +296,16 @@ npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数�
 8. **M5 任务脚本**（2026-11-27 起）：`lib/gtnh/questrun.js` 的 `bot.questSteps(id)` / `bot.runQuest(id)`
    把「任务书缺料 → 配方 → 挖矿」串成可执行步骤。规划顺序：工作台合成/熔炉优先 → 挖 → 机器配方进
    `blocked`（要开 GUI/放流体，这一层不做）。执行按轮重算，挖掘用背包净增判断。
-   **还欠**：① 交任务本身没做（做到 `ready:true` 就停）；② 机器配方全部 blocked（要等 MUI2 能写）；
+   **还欠**：① ~~交任务本身没做~~ 已做（见 ⑤）；② 机器配方全部 blocked（要等 MUI2 能写）；
    ③ ~~smelt 还没跑过~~ 已验（2026-11-27）：`bot.smeltItem` 实机把 2 个 iron_ore 烧成 1 个 iron_ingot；
    途中发现熔炉窗口不能用上游的 `putFuel/putInput/takeOutput`（`window.findItemRange` 在 GTNH 的
    4 字节 id 下匹配不到物品，报 `Can't find iron_ore in slots [3 - 39]`），改成自己 `clickWindow`；
    ④ 计划里偶尔会多备料（按轮重算会重复挖）；
-   ⑤ 交任务已解（2026-11-27）：BQ 的提交走 `BQ_NET_CHAN` 的 SimpleImpl 包（没实现），退路是
-   `bq_admin complete <b64uuid> <player>`——坑在 UUID 参数不是标准格式，是 `UuidConverter` 的
-   16 字节 URL-safe base64 去 padding（FINDINGS §39）；`bot.submitQuest` 需要注入 rcon。
+   ⑤ 交任务（2026-11-27）：**BQ 自己的通道已经实现**（`protocol-fml/src/gtnh/bqnet.js`：分片 NBT
+   + 双层 gzip + 3 字节头），`bot.submitQuest` 默认走玩家路径，服务端会验前置与物品；实机三种情况
+   （前置没做 → 被拒、全新玩家 + 11 dirt → 成功、已交过 → 忽略但 ok）都验过。`via:'rcon'` 才走
+   `bq_admin complete`（UUID 是 `UuidConverter` 的 16 字节 URL-safe base64 去 padding，FINDINGS §39/§39.5）。
+   怪现象：`bq_admin reset` 之后同一玩家的 BQ claim 会失败，换新玩家立刻成功。
 
 ## 8. 记忆里容易忘的小事
 

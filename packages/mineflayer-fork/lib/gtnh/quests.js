@@ -51,27 +51,61 @@ function attachQuests (bot) {
   }
 
   /**
-   * 交任务。BetterQuesting 的提交是它自己的 GUI 按钮（不是 open_window、也不是 MUI2），
-   * 客户端要发 BQ_NET_CHAN 通道的 FML 自定义包——这个 fork 还没实现。
-   * 退路是服务器的管理命令，rcon 以控制台身份执行，效果同玩家点「提交」：
+   * 交任务：默认走 BQ 自己的通道（和玩家点「提交」是同一条路），opts.via:'rcon' 才用管理命令。
    *
    *   bot.submitQuest('I Want SOLIDS Not LIQUIDS!')
-   *   // 需要 createBot({ rcon: (cmds) => rcon(cmds, { host }) }) 或传 opts.rcon
+   *   // => { ok: true, via: 'bq', verified: true }
    *
-   * 注意：`bq_admin complete` 对「多选一」奖励是服务端替你选，不是玩家点选。
+   * 服务端对失败是静默的（前置没做/物品不够都不回错），所以有 rcon 时会顺带
+   * `bq_admin check` 核对一次（verified）。opts.verify:false 跳过核对。
+   * 通道格式见 FINDINGS §39.5。
    */
   bot.submitQuest = async (id, opts = {}) => {
-    const run = opts.rcon || bot.rcon
-    if (typeof run !== 'function') {
-      return { ok: false, reason: '交任务需要 rcon（bq_admin 是管理命令）：createBot({ rcon }) 或传 opts.rcon' }
-    }
     let q = null
     try {
       const b = load()
       q = b.get(id) || b.byName(id)[0] || null
     } catch {}
     if (!q) return { ok: false, reason: `任务书里没有：${id}` }
+    if (opts.via === 'rcon') return submitViaAdmin(bot, q, opts)
+
+    // —— 玩家路径：BQ_NET_CHAN 的 quest_action(action=0) ——
+    try {
+      const { encodeQuestAction, CHANNEL } = require('protocol-fml/src/gtnh/bqnet')
+      for (const data of encodeQuestAction([q.id], 0)) {
+        bot._client.write('custom_payload', { channel: CHANNEL, data })
+      }
+    } catch (e) {
+      return { ok: false, quest: q.id, reason: `发 BQ 包失败：${e.message}` }
+    }
+    await new Promise((r) => setTimeout(r, opts.waitMs ?? 800))
+
+    const run = opts.rcon || bot.rcon
     const player = opts.player || bot.username || (bot._client && bot._client.username)
+    if (typeof run !== 'function' || opts.verify === false || !player) {
+      return { ok: true, via: 'bq', quest: q.id, verified: null }
+    }
+    let out
+    try {
+      out = await run([`bq_admin check ${player} ${uuidToBq(q.id)}`])
+    } catch (e) {
+      return { ok: true, via: 'bq', quest: q.id, verified: null, reason: `核对失败：${e.message}` }
+    }
+    const text = Array.isArray(out) ? out.join('\n') : String(out || '')
+    if (/has completed/i.test(text)) return { ok: true, via: 'bq', quest: q.id, verified: true, reply: text }
+    if (/has not completed/i.test(text)) {
+      return { ok: false, via: 'bq', quest: q.id, reason: '服务端没接受（前置没完成或物品不够）', reply: text }
+    }
+    return { ok: true, via: 'bq', quest: q.id, verified: false, reply: text }
+  }
+
+  // 管理员代交：不校验前置，多选一奖励由服务端选
+  async function submitViaAdmin (b, q, opts) {
+    const run = opts.rcon || b.rcon
+    if (typeof run !== 'function') {
+      return { ok: false, reason: '交任务需要 rcon（bq_admin 是管理命令）：createBot({ rcon }) 或传 opts.rcon' }
+    }
+    const player = opts.player || b.username || (b._client && b._client.username)
     if (!player) return { ok: false, reason: '不知道玩家名：传 opts.player' }
     let out
     try {
@@ -80,8 +114,8 @@ function attachQuests (bot) {
       return { ok: false, reason: `rcon 失败：${e.message}` }
     }
     const text = Array.isArray(out) ? out.join('\n') : String(out || '')
-    if (/Completed quest/i.test(text)) return { ok: true, quest: q.id, reply: text }
-    return { ok: false, quest: q.id, reason: text || 'rcon 没有回复' }
+    if (/Completed quest/i.test(text)) return { ok: true, via: 'rcon', quest: q.id, reply: text }
+    return { ok: false, via: 'rcon', quest: q.id, reason: text || 'rcon 没有回复' }
   }
 
   /**

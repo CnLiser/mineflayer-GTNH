@@ -84,30 +84,53 @@ test('BQ 的 uuid 编码与标准 UUID 互转', () => {
   assert.throws(() => uuidToBq('not-a-uuid'), /不是 UUID/)
 })
 
-test('submitQuest 没有 rcon 时说明原因', async () => {
-  const { bot } = await createOfflineBot({ username: 'noRcon' })
-  const r = await bot.submitQuest('Your First Night')
-  assert.equal(r.ok, false)
-  assert.match(r.reason, /rcon/)
+test('submitQuest 默认走 BQ 通道：发 custom_payload，不用 rcon', async () => {
+  const { bot, client } = await createOfflineBot({ username: 'bqplayer' })
+  const sent = []
+  const fakeRcon = async (cmds) => {
+    sent.push(...cmds)
+    return ['bqplayer has completed §9§lYour First Night']
+  }
+  const r = await bot.submitQuest('Your First Night', { rcon: fakeRcon, player: 'bqplayer' })
+  assert.equal(r.ok, true)
+  assert.equal(r.via, 'bq')
+  assert.equal(r.verified, true)
+  const pkt = client.lastWrite('custom_payload')
+  assert.ok(pkt, '应该发了 custom_payload')
+  assert.equal(pkt.channel, 'BQ_NET_CHAN')
+  assert.equal(pkt.data.readUInt8(0), 0, 'SimpleImpl discriminator')
+  assert.match(sent[0], /^bq_admin check bqplayer \S+$/)
 })
 
-test('submitQuest 用 rcon 发 bq_admin complete 并解析回复', async () => {
+test('submitQuest 服务端没接受时 ok=false', async () => {
+  const { bot } = await createOfflineBot({ username: 'bqplayer2' })
+  const r = await bot.submitQuest('Your First Night', {
+    rcon: async () => ['bqplayer2 has not completed §9§lYour First Night'],
+    player: 'bqplayer2'
+  })
+  assert.equal(r.ok, false)
+  assert.equal(r.via, 'bq')
+  assert.match(r.reason, /服务端没接受/)
+})
+
+test('submitQuest via:rcon 才发 bq_admin complete', async () => {
   const sent = []
   const fakeRcon = async (cmds) => {
     sent.push(...cmds)
     return ['Completed quest §9§lYour First Night for Player123']
   }
   const { bot } = await createOfflineBot({ username: 'Player123' })
-  const r = await bot.submitQuest('Your First Night', { rcon: fakeRcon, player: 'Player123' })
+  const r = await bot.submitQuest('Your First Night', { via: 'rcon', rcon: fakeRcon, player: 'Player123' })
   assert.equal(r.ok, true)
+  assert.equal(r.via, 'rcon')
   assert.equal(sent.length, 1)
   assert.match(sent[0], /^bq_admin complete \S+ Player123$/)
-  assert.equal(r.quest, '00000000-0000-0000-0000-000000000000')
 })
 
 test('submitQuest 收到错误回复时 ok=false', async () => {
   const { bot } = await createOfflineBot({ username: 'Player123' })
   const r = await bot.submitQuest('Your First Night', {
+    via: 'rcon',
     rcon: async () => ['bq_admin complete <all|quest_id> [username|uuid]'],
     player: 'Player123'
   })

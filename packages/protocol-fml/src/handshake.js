@@ -49,7 +49,7 @@ const PHASE = {
 
 // modularui2：GT 机器的 GUI 走这个通道。客户端不 REGISTER 的话，FML 的
 // NetworkDispatcher 根本不会把载荷发过来（GT 机器就永远打不开）。
-const DEFAULT_CHANNELS = [CHANNEL_HS, 'FML', CHANNEL_MP, 'FORGE', 'modularui2']
+const DEFAULT_CHANNELS = [CHANNEL_HS, 'FML', CHANNEL_MP, 'FORGE', 'modularui2', 'BQ_NET_CHAN']
 
 // ---------- 编码 ----------
 

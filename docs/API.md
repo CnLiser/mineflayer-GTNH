@@ -330,20 +330,17 @@ const r = await bot.runQuest('Soft Mallet Adventure', { rounds: 6, radius: 24 })
 
 到 `ready: true`（`missing` 为空）后会自动交给 `bot.submitQuest`。
 
-交任务（BQ 的提交按钮不是窗口，走它自己的 FML 通道，这个 fork 没实现，退路是管理命令）：
+交任务（默认走 BQ 自己的 FML 通道，和玩家点「提交」是同一条路）：
 
 ```js
-const rcon = require('protocol-fml/tools/rcon').rcon
-const bot = createBot({ host, port, username, rcon: (cmds) => rcon(cmds, { host }) })
-
 await bot.submitQuest('I Want SOLIDS Not LIQUIDS!')
-// => { ok: true, quest: '00000000-...-0ac7', reply: 'Completed quest ...' }
-// 没 rcon 时 => { ok: false, reason: '交任务需要 rcon（bq_admin 是管理命令）...' }
+// => { ok: true, via: 'bq', verified: true }
+// 前置没做/物品不够 => { ok: false, reason: '服务端没接受（前置没完成或物品不够）', reply: '...' }
 ```
 
-`bq_admin complete` 是管理员代交：跳过前置校验，多选一奖励由服务端选。要真正走玩家
-路径得实现 `BQ_NET_CHAN` 的 SimpleImpl 包（见 FINDINGS §39）。`runQuest` 的
-`opts.submit: false` 可以关掉自动提交。
+服务端对失败是**静默**的，所以有 rcon 时会顺带 `bq_admin check` 核对一次（`verified`）。
+`opts.verify: false` 跳过核对；`opts.via: 'rcon'` 退回管理员代交（不校验前置，多选一奖励
+由服务端选）。通道格式见 FINDINGS §39.5。`runQuest` 的 `opts.submit: false` 可以关掉自动提交。
 
 单独烧一炉：
 
