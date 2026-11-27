@@ -2781,3 +2781,17 @@ bot._client.on('keep_alive', (packet) => {
 会被吞掉，机器当然不动；`probeSlots` 拿一种样品试所有槽也会把不同料放错位置
 （压模机的模槽只收模），现在改成**每种料各探一次**。
 
+
+### 44.1 还没对上的一处：slot 0 是「存储槽」，不是电力槽
+
+用户 m06610：**「机器里没有铁锭，配方是对的，你把红石放到了存储槽中，没放到电力槽中」**。
+
+- 所以 `OTHER_SLOT_COUNT = 5` 覆盖的 0..4 里，**0 是存储槽**；电力槽（放电池给机器供电）
+  是别的槽。`dechargerSlotStartIndex()` 与 `rechargerSlotStartIndex()` **都返回 1**，
+  说明 1 起是「充放电槽」；把红石放进 slot 1 实测**机器仍然不动**（prog 仍是 NaN）。
+- 另一条同样重要的经验：`clickWindow` 是**客户端乐观更新**，放完必须
+  **关窗再重开**才能看到服务端真实槽位。重开后确认 `slot 1 = redstone`、
+  `slot 3 = metalPattern`、`slot 5 = metaitem.01:11019` 都真的进去了，但机器还是不动
+  （`powerSwitch=true`、`powerfail=false`、`hasError=false`、进度 NaN）。
+- 结论：料与模的位置已经对了，**卡在供电**——红石放 slot 0/1 都不行，
+  下一步要么放一块真电池到电力槽，要么用发电机 + 导线（FINDINGS §42）。
