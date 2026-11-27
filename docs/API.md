@@ -241,6 +241,12 @@ GT 的扳手、剪线钳、锤都是同一个物品 `gregtech:gt.metatool.01`，
 （16 扳手 / 26 剪线钳 / 12 锤），`bot.findTools` 按 damage 认，不看名字。
 **GT 的锤可以当镐用**（挖石、挖矿），所以 `pickaxe` 的候选里包含 hammer 和多功能工具。
 
+**GT 没有自己的镐**：能挖矿的是匠魂的镐（镐头用 GT 材料做）、木镐（GT 唯一放行的原版镐）、
+以及 GT 的硬锤。匠魂工具的 `InfiTool.MiningSpeed` 与耐久都在 NBT 里，`bot.findTools` 按
+MiningSpeed 从快到慢排，耐久见底（`Durability <= 1`）的排在最后——它可以在装配台用主部件的
+材料锭修好，但当下不该优先用。`bot.digTime` 也按 MiningSpeed 重算（`硬度 × 1500 × 1.2 / 速度`），
+否则 mcdata 会按徒手估出 7.5 秒。
+
 ```js
 // 挖机器：没有扳手会被拦下，不会白挖
 const r = await bot.equipToolFor(machineBlock)

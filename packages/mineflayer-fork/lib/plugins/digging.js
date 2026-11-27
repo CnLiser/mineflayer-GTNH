@@ -257,17 +257,20 @@ function inject (bot) {
       bot.entity.effects
     )
     // GTNH-PATCH: 1.7.10 的 minecraft-data 不认识匠魂 / GT 的工具，一律按徒手（速度 1）算，
-    // 于是拿了一把能用的镐反而要挖 7.5 秒（石头的硬度 1.5）。这里只在「工具确实匹配」且
-    // 「算出来的时间明显偏大」时，把速度按铁级（4）补回去，原版工具和创造模式不受影响。
+    // 于是拿了一把能用的镐反而要挖 7.5 秒（石头的硬度 1.5）。匠魂工具的 MiningSpeed 在 NBT 里
+    // （`InfiTool.MiningSpeed`），这里按它重算：时间 ≈ 硬度 × 1500 / 速度，再留 1.2 倍余量
+    // ——`status 2` 发早了服务端会直接丢、进度还会被下一次 `status 0` 重置，宁可多等一点。
+    // 没有 NBT 的匠魂工具按速度 1 算（保守），原版工具与创造模式不受影响。
     if (t > 0 && t !== Infinity && bot.heldItem) {
       try {
-        const { toolNeeded, toolKindOf, TOOL_ALIASES } = require('../gtnh/harvest')
+        const { toolNeeded, toolKindOf, TOOL_ALIASES, toolSpeed } = require('../gtnh/harvest')
         const need = toolNeeded(block)
         const kind = toolKindOf(bot.heldItem)
         const aliases = need ? (TOOL_ALIASES[need.tool] || [need.tool]) : []
         const hardness = block.hardness ?? 1
         if (need && kind && aliases.includes(kind) && t > hardness * 900) {
-          return Math.max(50, (hardness * 1500) / 4)
+          const speed = Math.max(1, toolSpeed(bot.heldItem))
+          return Math.max(50, (hardness * 1500 * 1.2) / speed)
         }
       } catch (err) { /* 工具模块不可用就退回原始估算 */ }
     }

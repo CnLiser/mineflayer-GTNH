@@ -2249,10 +2249,36 @@ if (bot.blockAt(bot.entity.position) != null) { // otherwise the chunk is unload
 **已修（`lib/plugins/digging.js` 的 `digTime`）**：minecraft-data 不认识匠魂/GT 的工具，
 一律按徒手（速度 1）算，石头要 7500 ms。现在加了 GTNH-PATCH：当**工具确实匹配这个方块**
 （`toolKindOf(held)` 命中 `toolNeeded(block)` 的别名表）且**算出来的时间明显偏大**
-（`> hardness * 900`）时，按铁级速度 4 重算 `hardness * 1500 / 4`——石头从 7500 ms 降到 **562.5 ms**。
-原版工具（mcdata 认得，时间本来就不大）和创造模式不受影响；被禁的原版镐也不会被「提速」（它压根不在别名表里）。
+（`> hardness * 900`）时，按工具的真实速度重算——
+`harness = hardness × 1500 × 1.2 / speed`，`speed` 取自匠魂工具 NBT 的 `InfiTool.MiningSpeed`
+（没有 NBT 的按 1 算，即「空镐」）。1.2 是给服务端 tick 卡顿留的余量：`status 2` 发早了
+服务端会直接丢掉这个包，而接下来的 `status 0` 又会把已有的进度归零，宁可多等一点。
 
-实机：TiC 镐挖石头，`digTime` 7500 → 562.5 ms，端到端 8 s → **3.2 s**（剩下的是服务端 tick 卡顿）。
+实机（生存模式、同一场地、`testforblock` 判定）：
+
+| 手持 | 方块 | `digTime` | 实测用掉 | 结果 |
+| --- | --- | --- | --- | --- |
+| 匠魂镐（无 NBT，速度 1） | `coal_ore`（硬度 3） | 5400 ms | 5508 ms | ✅ 挖掉 |
+| 匠魂镐（无 NBT，速度 1） | `stone`（硬度 1.5） | 2700 ms | 2796 ms | ✅ 挖掉 |
+
+公式和实测只差一次网络往返，说明服务端的挖掘时长就是 `硬度 × 1500 / 速度`，
+客户端早先按徒手算的 7500 ms 才是错的。
+
+**关于「GT 的镐」（2026-11-27 用户两次澄清，第二句修正第一句）**：
+- 第一句「只能用 GT 的镐或者匠魂的镐」→ 后来修正：**GT 根本没有自己的镐**。
+  `gregtech.common.items.IDMetaTool01` 里只有 SAW / HARDHAMMER / WRENCH / FILE / CROWBAR /
+  SCREWDRIVER / MORTAR / WIRECUTTER / SCOOP / DRILL / CHAINSAW…，**没有 PICKAXE**。
+  lang 里 `gt.metatool.01.0..8` 没有键，也是这个原因——不是「表没导全」，是物品不存在。
+- 能挖矿的只有：**匠魂的镐**（镐头用什么材料都行，GT 的钴/玛玉灵/钨钢做成部件就有对应等级与速度）、
+  木镐（GT 唯一放行的原版镐）、以及 GT 的硬锤 `metatool.01:12`（锤不是镐，但 GT 允许它挖石/矿）。
+- **匠魂工具有「挖掘速度」（`InfiTool.MiningSpeed`）**，同一块矿的耗时差别很大，所以
+  `findTools` 现在按 `MiningSpeed` 排序，而不是按名字里的材料猜。
+- **匠魂工具损坏后可以用主部件的材料锭在装配台（Tool Station / Tool Forge）修复**，
+  所以 `findTools` 会把耐久见底（`Durability <= 1`）的工具排到最后——它还能修，但当下不该优先用。
+
+`lib/gtnh/harvest.js` 新增：`tiCStats(item)`（读 `InfiTool` 的 MiningSpeed / HarvestLevel /
+Durability / TotalDurability，`{type,value}` 套娃与普通对象两种形状都认）、`toolSpeed(item)`、
+`isWornOut(item)`；`findTools` 的排序键变成「先排除快报废的，再按速度，再按名字里的材质」。
 
 ## 三十六、2026-11-27：NEI 静态表的最后四个候选——全部没有独立配方表
 

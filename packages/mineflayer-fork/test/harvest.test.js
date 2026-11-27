@@ -84,3 +84,40 @@ test('同名不同 damage 的 GT 工具不是同一件', () => {
   assert.equal(sameItem(wrench, wrench), true)
   assert.equal(sameItem(wrench, hammer), false)
 })
+
+test('匠魂工具的 NBT 属性：MiningSpeed / 耐久两种形状都认', () => {
+  const { tiCStats, toolSpeed, isWornOut } = require('../lib/gtnh/harvest')
+  const taged = {
+    type: 'compound',
+    value: {
+      InfiTool: {
+        type: 'compound',
+        value: {
+          MiningSpeed: { type: 'int', value: 12 },
+          HarvestLevel: { type: 'int', value: 4 },
+          Durability: { type: 'int', value: 1200 },
+          TotalDurability: { type: 'int', value: 2500 }
+        }
+      }
+    }
+  }
+  // 普通对象（测试里手搓的）也要能读
+  const plain = { InfiTool: { MiningSpeed: 8, Durability: 0, TotalDurability: 500 } }
+  assert.deepStrictEqual(tiCStats({ name: 'TConstruct:pickaxe', nbt: taged }), {
+    miningSpeed: 12, harvestLevel: 4, durability: 1200, totalDurability: 2500
+  })
+  assert.strictEqual(toolSpeed({ name: 'TConstruct:pickaxe', nbt: taged }), 12)
+  assert.strictEqual(toolSpeed({ name: 'TConstruct:pickaxe', nbt: plain }), 8)
+  assert.strictEqual(isWornOut({ nbt: plain }), true, '耐久 0 应该算报废')
+  assert.strictEqual(isWornOut({ nbt: taged }), false)
+})
+
+test('挑镐时按 MiningSpeed 排，快报废的排最后', () => {
+  const { findTools } = require('../lib/gtnh/harvest')
+  const slow = { name: 'TConstruct:pickaxe', nbt: { InfiTool: { MiningSpeed: 3, Durability: 900 } } }
+  const fast = { name: 'TConstruct:pickaxe', nbt: { InfiTool: { MiningSpeed: 14, Durability: 500 } } }
+  const broken = { name: 'TConstruct:pickaxe', nbt: { InfiTool: { MiningSpeed: 30, Durability: 0 } } }
+  const wood = { name: 'minecraft:wooden_pickaxe' }
+  const bot = { inventory: { items: () => [slow, broken, wood, fast] }, heldItem: null, equip: async () => {} }
+  assert.deepStrictEqual(findTools(bot, 'pickaxe'), [fast, slow, wood, broken])
+})
