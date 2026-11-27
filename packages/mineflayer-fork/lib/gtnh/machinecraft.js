@@ -15,7 +15,10 @@ const { Vec3 } = require('vec3')
 const { gtnWindowSlots, canRun } = require('./gtmachine')
 
 // MTEBasicMachine 的字节码定的布局：0 存储、1..2 充放电、3 特殊槽（模）、5 起输入、5+n 起输出
-const MACHINE_SLOTS = { power: 1, special: 3, input: 5, out: 6 }
+// GT 单方块机器的窗口槽（实机校准，2026-11-27）：
+//   0、1 是输入（压模机：料进 0、模进 1；合金炉：两种料各占一个）
+//   留出 2 给「第三种料」（组装机之类），产物则**全扫**（不同机器不一样，(39) 是 4）
+const MACHINE_SLOTS = { input: 0, special: 1, out: 2, inputs: [0, 1, 2] }
 const TIER_NAMES = ['ULV', 'LV', 'MV', 'HV', 'EV', 'IV', 'LuV', 'ZPM', 'UV', 'UHV', 'UEV', 'UIV']
 
 // panel 名 → { name, tier }
@@ -283,7 +286,7 @@ async function machineCraft (bot, opts) {
         const src = bot.inventory.items().find((it) => matchInput(it, input))
         const srcSlot = findWindowSlotFor(win, src)
         if (srcSlot < 0) { placedAll = false; putReason = `窗口里找不到 ${input.name}:${input.meta}`; break }
-        const dest = slotOrder[si++] ?? MACHINE_SLOTS.input
+        const dest = slotOrder[si++] ?? MACHINE_SLOTS.inputs[0]
         const cur = win.slots[dest]
         if (cur && !matchInput(cur, input)) await clearSlot(bot, dest)
         const okPut = await putN(bot, dest, srcSlot, input.count)

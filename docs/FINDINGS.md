@@ -2852,3 +2852,37 @@ machineCraft {"ok":true,"crafted":1,"panel":"basicmachine.extruder.tier.01","tri
 触发 log4j 的 context-classloader NPE，`FMLCommonHandler` 又撞 jarjar 的 IllegalAccessError），
 这条路下次再走。
 
+
+## 四十六、2026-11-27：往机器里放料的正确点法（`clickWindow` 的参数顺序）
+
+### 46.1 `clickWindow(slot, mouseButton, mode)`——右键放 1 个是 `(slot, 1, 0)`
+
+我前期一直写成 `clickWindow(slot, 0, 1)`，看起来「左键 + shift」，实际是
+**shift 点击**（mode 1），在 GT 的 ModularUI2 窗口上什么都不做、也不报错。
+
+正确的三种：
+
+| 动作 | 调用 |
+| --- | --- |
+| 左键拿起整叠 | `clickWindow(slot, 0, 0)` |
+| 右键放 1 个 | `clickWindow(slot, 1, 0)` |
+| shift 整叠转移 | `clickWindow(slot, 0, 1)` |
+
+每步之间 `sleep(250~600)`，否则服务端还没回 `set_slot` 就点下一步。
+
+### 46.2 实测：单方块机器的窗口槽 0、1 就是输入
+
+对 `(33,78,19)` 的压模机（`basicmachine.extruder.tier.01`，窗口 41 槽、`inventoryStart=5`）：
+
+- 把铁锭放进 **slot 0**、模放进 **slot 1**，两块料都被收下并留在窗口里；
+- 放进去时 `auto_sync:<panel>:2` / `:3` 会跟着变化，且是 `readOnly: true`
+  ——这两个是 GUI 里输入槽的镜像，可以用来确认「料确实进了」。
+
+`MTEBasicMachine` 上那些 `getInputSlot()=5` / `getSpecialSlotIndex()=3` 是**物品数组的索引**，
+跟窗口槽号不是一回事（窗口槽号从 0 起，正好差 5）。判断槽位要看窗口。
+
+### 46.3 料放对之后还不动，就只剩电的问题
+
+料进 0/1 之后 `powerSwitch:0` 仍然是 `true`、但 `auto_sync:<panel>:0`（进度）是 `null`、产物不出现，
+说明机器在等电——这台机器的电池被我在实验里取走了。接下来就是导线连接那一步。
+
