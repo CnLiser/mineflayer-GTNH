@@ -376,6 +376,25 @@ node packages/mineflayer-fork/tools/quest-demo.js 127.0.0.1 54615 bot2 "Your Fir
 `window.findItemRange`，GTNH 的 4 字节 id 下匹配不到玩家背包里的物品（实测报
 `Can't find iron_ore in slots [3 - 39]`）。`smelt` 内部是自己 `clickWindow` 点的。
 
+### 6.6 机器 GUI 的值（MUI2 写路径，实验性）
+
+```js
+const panel = bot.modularPanels()[0]        // 'basicmachine.alloysmelter.tier.02'
+bot.panelState(panel)                       // { 'powerSwitch:0': {kind:'bool',value:true}, ... }
+
+bot.muiSet(panel, 'powerSwitch', false)     // 改一个值（类型从已解码的 kind 推断，可 opts.type 指定）
+bot.muiToggle(panel, 'powerSwitch')         // 布尔取反
+bot.muiClick(panel, 'someButton:0', payload) // 点 widget（action=true）
+bot.muiClose()                              // 关掉当前 MUI2 窗口
+```
+
+没有打开的 MUI2 窗口时都返回 `false`、不发包。编码层在
+`protocol-fml/src/gtnh/modularui.js`（`encodeSyncHandler` 等），C2S 的 id 是 S2C + 1。
+
+⚠️ **实机还没通**：包能到服务端（发不存在的 discriminator 会被踢，说明进了 dispatch），
+但所有 `networkId` 组合都被服务端静默丢弃——`activeScreens` 里没有能命中的 session。
+细节与下一步在 FINDINGS §40。
+
 ## 7. 聊天
 
 ```js

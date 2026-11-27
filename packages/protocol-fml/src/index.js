@@ -11,7 +11,8 @@ const {
   decodeBlockChange,
   decodeMultiBlockChange
 } = require('./gtnh/chunkapi')
-const { parsePacket: parseModularUIPacket, decodeSyncValue, collectSync, PACKET_NAMES: MODULARUI_PACKETS } = require('./gtnh/modularui')
+const { parsePacket: parseModularUIPacket, decodeSyncValue, collectSync, PACKET_NAMES: MODULARUI_PACKETS,
+  encodeSyncHandler, encodeWidgetAction, encodeCloseGui, encodeSyncPayload, C2S_IDS: MODULARUI_C2S } = require('./gtnh/modularui')
 
 /*
  * 1.7.10 的 S→C custom_payload：minecraft-data 里是 channel + i16 + data，
@@ -351,6 +352,11 @@ module.exports = {
   parseModularUIPacket,
   decodeSyncValue,
   collectSync,
+  encodeSyncHandler,
+  encodeWidgetAction,
+  encodeCloseGui,
+  encodeSyncPayload,
+  MODULARUI_C2S,
   MODULARUI_PACKETS,
   FmlHandshake,
   GTNH_CUSTOM_PACKETS,

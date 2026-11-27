@@ -105,3 +105,54 @@ test('截断的载荷要抛错而不是静默返回垃圾', () => {
   assert.throws(() => parsePacket(Buffer.from('0b00', 'hex')))
   assert.throws(() => parsePacket(Buffer.alloc(0)))
 })
+
+// --- 写路径（C→S 编码）。S→C 的 id 见上，C2S 的 id 由 registerBoth 先 S2C 后 C2S 推出。
+const {
+  encodeSyncHandler,
+  encodeCloseGui,
+  encodeWidgetAction,
+  C2S_IDS
+} = require('../src/gtnh/modularui')
+
+test('C2S id 是 S2C id + 1', () => {
+  assert.strictEqual(C2S_IDS.syncConfig, 2)
+  assert.strictEqual(C2S_IDS.openGui, 4)
+  assert.strictEqual(C2S_IDS.reopenGui, 6)
+  assert.strictEqual(C2S_IDS.closeGui, 8)
+  assert.strictEqual(C2S_IDS.closeAllGui, 10)
+  assert.strictEqual(C2S_IDS.syncHandler, 12)
+})
+
+test('encodeSyncHandler 与抓到的 S→C 同款包逐字节一致（除 id）', () => {
+  const out = encodeSyncHandler({
+    networkId: 0,
+    panel: 'basicmachine.alloysmelter.tier.02',
+    key: 'powerSwitch:0',
+    value: true,
+    type: 'bool'
+  })
+  // 把 id 从 12 改成 11 就是真实抓包的 SYNC_POWER
+  const asServer = Buffer.from(out)
+  asServer[0] = 11
+  assert.strictEqual(asServer.toString('hex'), SYNC_POWER)
+})
+
+test('encodeSyncHandler 编出来的包能被 parsePacket 读回去', () => {
+  const out = encodeSyncHandler({ networkId: 3, panel: 'p', key: 'k', value: 42, type: 'int' })
+  const msg = parsePacket(out)
+  assert.strictEqual(msg.name, 'syncHandler')
+  assert.strictEqual(msg.networkId, 3)
+  assert.strictEqual(msg.panel, 'p')
+  assert.strictEqual(msg.key, 'k')
+  assert.strictEqual(msg.action, false)
+})
+
+test('encodeCloseGui / encodeWidgetAction 的头部', () => {
+  const close = encodeCloseGui({ networkId: 2 })
+  assert.strictEqual(close[0], C2S_IDS.closeGui)
+  assert.strictEqual(close[1], 2)
+
+  const act = encodeWidgetAction({ networkId: 1, panel: 'p', key: 'button:0', payload: Buffer.from([1, 2, 3]) })
+  assert.strictEqual(act[0], C2S_IDS.syncHandler)
+  assert.strictEqual(act[1], 1)
+})

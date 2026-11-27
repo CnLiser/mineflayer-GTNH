@@ -19,7 +19,7 @@
  * modularui2 载荷发过来（NetworkDispatcher 只看玩家声明过的通道）。
  */
 
-const { readVarInt } = require('../codec')
+const { readVarInt, writeVarInt, writeString } = require('../codec')
 
 const PACKET_NAMES = {
   1: 'clipboard',
@@ -239,6 +239,77 @@ function collectSync (messages) {
   return panels
 }
 
+
+// ---------- 编码（客户端 -> 服务端） ----------
+//
+// 客户端发的是同一种 PacketSyncHandler，只是包 id 走 C->S 那一半：
+//   4 openGui / 6 reopenGui / 8 closeGui / 10 closeAllGui / 2 syncConfig /
+//   12 syncHandler
+// 包体对称：varint networkId + string panel + string key + bool action +
+// byteBuf(payload)，payload 是 [varint tag][值]。
+// tag=0 同时用于 SYNC_VALUE 与 ItemSlotSH 的 SYNC_ITEM，靠 handler 类型区分。
+
+const C2S_IDS = {
+  syncConfig: 2,
+  openGui: 4,
+  reopenGui: 6,
+  closeGui: 8,
+  closeAllGui: 10,
+  syncHandler: 12
+}
+
+// 把 JS 值编码成 SyncHandler.read() 期望的字节。type 决定用哪种 varint/double。
+function encodeSyncPayload (value, type) {
+  const tag = writeVarInt(SYNC_VALUE)
+  const t = type || (typeof value === 'boolean' ? 'bool' : 'int')
+  if (t === 'bool') return Buffer.concat([tag, Buffer.from([value ? 1 : 0])])
+  if (t === 'int') return Buffer.concat([tag, writeVarInt(value | 0)])
+  if (t === 'long') {
+    const b = Buffer.alloc(8)
+    b.writeBigInt64BE(BigInt(value))
+    return Buffer.concat([tag, b])
+  }
+  if (t === 'double') {
+    const b = Buffer.alloc(8)
+    b.writeDoubleBE(Number(value))
+    return Buffer.concat([tag, b])
+  }
+  if (t === 'string') return Buffer.concat([tag, writeString(String(value))])
+  throw new Error('modularui: 不认识的同步类型 ' + t)
+}
+
+// 组一个 syncHandler 的 C->S 包（不含 custom_payload 外壳）。
+function encodeSyncHandler ({ networkId, panel, key, action = false, value, type }) {
+  const payload = encodeSyncPayload(value, type)
+  return Buffer.concat([
+    writeVarInt(C2S_IDS.syncHandler),
+    writeVarInt(networkId | 0),
+    writeString(String(panel)),
+    writeString(String(key)),
+    Buffer.from([action ? 1 : 0]),
+    writeVarInt(payload.length),
+    payload
+  ])
+}
+
+// 只发 action（widget 点击），payload 交给调用方。
+function encodeWidgetAction ({ networkId, panel, key, payload = Buffer.alloc(0) }) {
+  return Buffer.concat([
+    writeVarInt(C2S_IDS.syncHandler),
+    writeVarInt(networkId | 0),
+    writeString(String(panel)),
+    writeString(String(key)),
+    Buffer.from([1]),
+    writeVarInt(payload.length),
+    payload
+  ])
+}
+
+// 关窗（C->S closeGui，id 8）—— GT 机器没有原版 close_window 时用它。
+function encodeCloseGui ({ networkId, dispose = false }) {
+  return Buffer.concat([writeVarInt(C2S_IDS.closeGui), writeVarInt(networkId | 0), Buffer.from([dispose ? 1 : 0])])
+}
+
 module.exports = {
   PACKET_NAMES,
   SYNC_VALUE,
@@ -248,6 +319,11 @@ module.exports = {
   decodeSyncValue,
   decodeItemStack,
   collectSync,
+  C2S_IDS,
+  encodeSyncPayload,
+  encodeSyncHandler,
+  encodeWidgetAction,
+  encodeCloseGui,
   readString,
   readByteBuf
 }

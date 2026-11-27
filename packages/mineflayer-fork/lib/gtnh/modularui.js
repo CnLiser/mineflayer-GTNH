@@ -9,7 +9,7 @@
 // that carries an unknown id: the slot count is the machine's slot count plus
 // the 36 player-inventory slots, so the player inventory starts at
 // `slotCount - 36`.
-const { decodeSyncValue } = require('protocol-fml')
+const { decodeSyncValue, encodeSyncHandler, encodeWidgetAction, encodeCloseGui } = require('protocol-fml')
 
 const PLAYER_SLOTS = 36
 
@@ -85,6 +85,66 @@ function attachModularUI (bot) {
     for (const [key, value] of entry) out[key] = value
     return out
   }
+  // ---------- 写路径 ----------
+  // MUI2 的 syncHandler 是双向的：客户端发同一个包（id 12）就能改值，
+  // 服务端在 ValueSyncHandler.readOnServer(0) 里 read() 落回 setter。
+  // 服务端可以用 allowC2S(false) 关掉，那样包会被静默丢弃（不会断连）。
+  const sendRaw = (buf) => bot._client.write('custom_payload', { channel: 'modularui2', data: buf })
+
+  // 面板里的 key 常带 `:<n>` 后缀（powerSwitch:0、auto_sync:<panel>:2），
+  // 对外 API 允许传短名，这里做一次解析。
+  function resolveKey (panel, key) {
+    const entry = state.get(panel)
+    if (!entry || entry.has(key)) return key
+    for (const k of entry.keys()) {
+      if (k === key || k.split(':')[0] === key || k.split(':').pop() === key) return k
+    }
+    return key
+  }
+
+  function currentType (panel, key, value) {
+    const cur = state.get(panel)?.get(key)
+    if (cur && cur.kind && cur.kind !== 'raw') return cur.kind === 'bool' ? 'bool' : cur.kind === 'double' ? 'double' : cur.kind === 'long' ? 'long' : 'int'
+    return typeof value === 'boolean' ? 'bool' : Number.isInteger(value) ? 'int' : 'double'
+  }
+
+  // bot.muiSet(panel, key, value, {type}) -> boolean（有没有发出去）
+  bot.muiSet = (panel, key, value, opts = {}) => {
+    const win = bot.pendingModularWindow
+    if (!win) return false
+    key = resolveKey(panel, key)
+    const type = opts.type || currentType(panel, key, value)
+    sendRaw(encodeSyncHandler({ networkId: win.networkId, panel, key, value, type }))
+    bot.emit('modularWrite', { panel, key, value, type })
+    return true
+  }
+
+  // 取反一个布尔（powerSwitch 这类开关）
+  bot.muiToggle = (panel, key) => {
+    key = resolveKey(panel, key)
+    const cur = state.get(panel)?.get(key)
+    const next = !(cur && cur.value)
+    return bot.muiSet(panel, key, next)
+  }
+
+  // 点一个 widget（action=true）：payload 由调用方给，默认空
+  bot.muiClick = (panel, key, payload) => {
+    const win = bot.pendingModularWindow
+    if (!win) return false
+    key = resolveKey(panel, key)
+    sendRaw(encodeWidgetAction({ networkId: win.networkId, panel, key, payload }))
+    bot.emit('modularWrite', { panel, key, action: true })
+    return true
+  }
+
+  // 关掉当前 MUI2 窗口（GT 机器不发 close_window，走 MUI2 自己的包）
+  bot.muiClose = (dispose = false) => {
+    const win = bot.pendingModularWindow
+    if (!win) return false
+    sendRaw(encodeCloseGui({ networkId: win.networkId, dispose }))
+    return true
+  }
+
   bot.modularPanels = () => [...state.keys()]
   bot.disposeModularUI = () => { for (const off of listeners) off() }
   return bot

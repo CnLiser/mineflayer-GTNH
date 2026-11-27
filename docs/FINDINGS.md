@@ -2552,3 +2552,82 @@ payload NBT 第一个字段是 handler 的 ResourceLocation：
 **还有一个没解的现象**：用 `bq_admin reset` 重置之后，同一个玩家的 BQ 通道 claim 会失败
 （`has not completed`），换一个全新玩家又立刻成功。怀疑 reset 只清了服务端进度、没触发
 `main_sync` 重推，客户端的可见任务状态对不上。正常玩不会 reset，先记着。
+
+## 四十、2026-11-27：MUI2 的 C→S 写路径——包能到服务端，但它不认我们的 session（未通）
+
+目标：让 bot 能改机器 GUI 里的值（`powerSwitch`、电压、模式），从而解锁 `runQuest` 里
+blocked 的「机器配方」那一大类。**结论：编码层做完并验证了，但实机上服务端不执行任何写操作，
+这一条还没通。**
+
+### 40.1 线格式（可用的部分）
+
+MUI2 的通道名是 `modularui2`，SimpleImpl 的 discriminator 是包首字节。`NetworkHandler.registerBoth`
+的字节码是「先 `registerS2C` 再 `registerC2S`，packetId 从 0 开始取当前值再 +1」，所以
+C2S 的 id 正好是 S2C + 1：
+
+| 包 | S→C | C→S |
+| --- | --- | --- |
+| `syncConfig` | 1 | 2 |
+| `openGui` | 3 | 4 |
+| `reopenGui` | 5 | 6 |
+| `closeGui` | 7 | 8 |
+| `closeAllGui` | 9 | 10 |
+| `syncHandler` | 11 | **12** |
+| `widgetAction` | — | 12（action=true 的变形） |
+
+`syncHandler` 的 C→S 包和 S→C 是**同一套布局**：
+
+```
+[varint packetId=12][varint networkId][string panel][string key][bool action]
+[varint payloadLen][payload]           payload = [varint tag=0][值]
+```
+
+把 `encodeSyncHandler` 编出来的包首字节改成 11，与抓到的真实 S→C 包逐字节相同
+（测试里就锁了这一条，见 `packages/protocol-fml/test/modularui.test.js`）：
+
+```
+0b 00 21 "basicmachine.alloysmelter.tier.02" 0d "powerSwitch:0" 00 02 00 01
+```
+
+### 40.2 实机矩阵
+
+| 发包 | 结果 |
+| --- | --- |
+| discriminator 99 / 98（不存在） | **bot 被踢**：`A fatal error has occured, this connection is terminated` |
+| `closeGui` id 8/9/10/11/12/13 × networkId 0/1 | 窗口不关、不被踢、无日志 |
+| `syncHandler` id 12，`powerSwitch:0=false`，networkId 0..5 | 值一直是 true，不被踢 |
+| 原版 `close_window` 同一个窗口 | 立刻生效（`windowClose 1`） |
+| BQ 通道的 C→S（`bqnet`） | 之前实机成功过 |
+
+「不存在的 id 会被踢」这条很关键：它证明包确实到了服务端、进了 FML 的 dispatch；
+而 8–13 都不断连，说明这些 id 都是有 handler 的。
+
+### 40.3 卡在哪
+
+`ModularNetworkSide.receivePacket(player, packet)` 是：
+
+```java
+ModularSyncManager manager = activeScreens.get(packet.networkId);
+if (manager == null) return;                 // 静默，没有日志
+manager.receiveWidgetUpdate(panel, key, action, action ? 0 : packet.readVarInt(), packet);
+```
+
+所有 networkId 都无反应 ⇒ `activeScreens` 里没有能命中的 session。服务端 `activate` 的实现是
+`nextId = nextId + 1; if (nextId > 100000) nextId = 0; activateInternal(nextId, m); return nextId`，
+而我们抓到的 `openGui` 里 `networkId = 0`。
+
+还没试过的方向（下次接着做）：
+
+1. 用真实客户端开一次机器 GUI、点一下开关，通过 TCP 代理抓 C→S 包，直接看它的 `networkId`
+   和 packetId 到底是多少（最可靠，一次就能定死）；
+2. 试 `syncConfig`（id 2）：也许服务端要先收到它才把 session 挂进 `activeScreens`；
+3. 检查 `ModularNetwork.SERVER` 的 `get(player)` 是不是按 UUID 分了实例——我们的连接是
+   「新玩家每次」，理论上不冲突，但值得确认。
+
+### 40.4 代码在哪
+
+- 编码：`packages/protocol-fml/src/gtnh/modularui.js` 的 `encodeSyncHandler` / `encodeWidgetAction`
+  / `encodeCloseGui` / `encodeSyncPayload` / `C2S_IDS`（`protocol-fml` 门面也导出了）。
+- fork：`packages/mineflayer-fork/lib/gtnh/modularui.js` 的 `bot.muiSet` / `bot.muiToggle` /
+  `bot.muiClick` / `bot.muiClose`，没有打开的窗口时返回 `false` 不发包。
+- 测试：protocol-fml 4 条（含「与真实抓包逐字节一致」）、fork 3 条（离线 bot 断言发出的通道与 id）。
