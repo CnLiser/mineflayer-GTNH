@@ -45,6 +45,115 @@ function attachQuests (bot) {
   bot.questReady = (opts) => load().readyWith(invItems(bot), opts)
   /** 交这个任务还缺什么 */
   bot.questMissing = (id) => load().missingFor(id, invItems(bot))
+
+  /**
+   * 任务缺的东西「怎么弄」——缺料里凡是能查到配方的，给出一条路线（一层层往下拆）。
+   *
+   *   bot.questPlan('Shadow Metal')   // [{ name, need, have, how: { kind, inputs, next } | null }]
+   *
+   * depth 控制往下拆几层（默认 2），limit 控制最多展开几条缺料。
+   */
+  bot.questPlan = (id, opts) => {
+    const o = { depth: 2, limit: 10, ...(opts || {}) }
+    const b = load()
+    const q = b.get(id)
+    if (!q) throw new Error(`没有这条任务：${id}`)
+    const inv = invItems(bot)
+    return b.missingFor(id, inv).slice(0, o.limit).map((m) => {
+      const node = { ...m, how: howToMake(bot, m, o.depth - 1) }
+      return node
+    })
+  }
+}
+
+/** 物品名（注册名字符串）→ 注册表里的数字 id；数字原样返回 */
+function idOf (bot, id) {
+  if (typeof id === 'number') return id
+  if (!bot.registry || !bot.registry.itemsByName) return null
+  const byName = bot.registry.itemsByName[id] || bot.registry.itemsByName[id.replace(/^minecraft:/, '')]
+  return byName ? byName.id : null
+}
+
+/** 一条能把 item 造出来的配方（按 原版合成 → GT 合成台 → mod 配方 → GT 机器 → 熔炉 的顺序找） */
+function recipeFor (bot, item) {
+  const nid = idOf(bot, item.id)
+  if (nid == null) return null
+  try {
+    const vanilla = typeof bot.recipesFor === 'function' ? bot.recipesFor(nid, item.meta || null, 1, null) : []
+    if (vanilla && vanilla.length) {
+      const r = vanilla[0]
+      return {
+        kind: 'craft',
+        inputs: (r.delta || []).map((d) => ({ id: itemNameOf(bot, d.id), meta: d.metadata, count: -d.count }))
+      }
+    }
+  } catch {}
+  try {
+    if (typeof bot.gtnhRecipesFor === 'function') {
+      const rs = bot.gtnhRecipesFor(nid, item.meta || 0)
+      if (rs && rs.length) {
+        const r = rs[0]
+        return {
+          kind: 'gt',
+          inputs: (r.delta || []).map((d) => ({ id: itemNameOf(bot, d.id), meta: d.metadata, count: -d.count }))
+        }
+      }
+    }
+  } catch {}
+  try {
+    if (typeof bot.modRecipesFor === 'function') {
+      const rs = bot.modRecipesFor(nid, item.meta || 0)
+      if (rs && rs.length) {
+        const r = rs[0]
+        return {
+          kind: `mod:${r.mod}:${r.kind}`,
+          inputs: (r.ins || []).map((alts) => {
+            const a = (alts || [])[0] || {}
+            return { id: a.id || a.name || a.species, meta: a.meta || 0, count: 1 }
+          })
+        }
+      }
+    }
+  } catch {}
+  try {
+    if (typeof bot.gtRecipesForOutput === 'function') {
+      const rs = bot.gtRecipesForOutput(nid, item.meta || 0)
+      if (rs && rs.length) {
+        const r = rs[0]
+        return {
+          kind: `gt:${r.map}`,
+          eu: r.eu,
+          dur: r.dur,
+          // count 0 的是模具/催化剂，不算消耗
+          inputs: (r.in || []).filter((i) => (i.count | 0) > 0).map((i) => ({ id: i.name || itemNameOf(bot, i.id), meta: i.meta, count: i.count }))
+        }
+      }
+    }
+  } catch {}
+  try {
+    if (typeof bot.gtnhSmeltingFor === 'function') {
+      const sm = bot.gtnhSmeltingFor(nid, item.meta || 0)
+      if (sm) return { kind: 'smelt', inputs: [{ id: itemNameOf(bot, sm.id), meta: sm.metadata, count: 1 }] }
+    }
+  } catch {}
+  return null
+}
+
+function itemNameOf (bot, id) {
+  if (typeof id === 'string') return id
+  if (bot.registry && bot.registry.items && bot.registry.items[id]) return bot.registry.items[id].name
+  return String(id)
+}
+
+/** 递归一层：这一步要什么，以及每一步的原料还能怎么来 */
+function howToMake (bot, item, depth) {
+  const r = recipeFor(bot, item)
+  if (!r) return null
+  if (depth <= 0) return { kind: r.kind, inputs: r.inputs }
+  return {
+    ...r,
+    next: r.inputs.map((i) => ({ ...i, how: howToMake(bot, i, depth - 1) }))
+  }
 }
 
 function invItems (bot) {
@@ -55,4 +164,4 @@ function invItems (bot) {
   }
 }
 
-module.exports = { attachQuests }
+module.exports = { attachQuests, recipeFor, howToMake, idOf }

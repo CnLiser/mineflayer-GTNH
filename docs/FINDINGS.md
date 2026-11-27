@@ -2368,7 +2368,10 @@ book.missingFor(quest.id, bot.inventory.items())
 book.readyWith(bot.inventory.items())        // 当前背包能交的
 ```
 
-`forge` 侧对应 `bot.quests()` / `bot.questReady()` / `bot.questMissing(id)`。
+fork 侧对应 `bot.quests()` / `bot.questReady()` / `bot.questMissing(id)` / `bot.questPlan(id)`。
+`questPlan` 把缺料接到配方上：原版合成 → GT 合成台 → mod 配方 → GT 机器 → 熔炉，按这个顺序取
+第一条，再往下拆两层（`{ kind, inputs, next }`）；GT 机器配方里 `count` 为 0 的输入是模具/催化剂，
+不算消耗，已过滤。
 
 **坑四：物品字段两套写法。** 任务数据是 `{id, meta}`（`id` 是注册名字符串，如
 `gregtech:gt.metaitem.01`、`TaintedMagic:BlockShadowOre`），mineflayer 的物品是

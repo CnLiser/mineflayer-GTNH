@@ -220,7 +220,7 @@ gtnhFlag  : u8                  // 恒等于 count（x1→01, x2→02, x64→40�
 
 **测试：全仓 269 个**（gtnh-data 87 / prismarine-chunk-1.7 7 / protocol-fml 48 /
 mineflayer-fork 127），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
-能力等价地搬进了 fork（physics-tick 13 / blockshape 6 / chat 6 / support-feature 3 / inventory 5 / window 6 / entities 3 / reconnect 3 / pathfinder 12 / mining 5 / harvest 8 / digtime 4 / quests 3）。
+能力等价地搬进了 fork（physics-tick 13 / blockshape 6 / chat 6 / support-feature 3 / inventory 5 / window 6 / entities 3 / reconnect 3 / pathfinder 12 / mining 5 / harvest 8 / digtime 4 / quests 6）。
 
 ## 6. 冒烟工具
 

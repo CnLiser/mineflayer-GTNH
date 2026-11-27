@@ -269,6 +269,17 @@ bot.questReady()               // 当前背包能交的任务（checkbox 之类�
 bot.questMissing(questId)      // [{ name, id, meta, need, have, ore }]
 ```
 
+「缺的东西怎么弄」——`questPlan` 会把缺料接到配方上（原版合成 → GT 合成台 → mod 配方 →
+GT 机器 → 熔炉，按这个顺序找第一条），默认往下拆两层：
+
+```js
+bot.questPlan(questId, { depth: 2, limit: 10 })
+// [{ name, id, meta, need, have,
+//    how: { kind: 'gt:gt.recipe.alloysmelter', eu: 120, dur: 3200,
+//           inputs: [{ id, meta, count }],
+//           next: [{ ...同结构 }] } | null }]
+```
+
 一个典型的「该干什么」循环：
 
 ```js
