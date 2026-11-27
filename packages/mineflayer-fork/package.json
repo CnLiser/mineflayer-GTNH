@@ -18,7 +18,8 @@
     "recipes-smoke": "node tools/recipes-smoke.js",
     "tool-mine-smoke": "node tools/tool-mine-smoke.js 127.0.0.1 54615",
     "smeltery-smoke": "node tools/smeltery-smoke.js",
-    "extruder-smoke": "node tools/extruder-smoke.js"
+    "extruder-smoke": "node tools/extruder-smoke.js",
+    "quest-demo": "node tools/quest-demo.js 127.0.0.1 54615 quest-demo \"Your First Night\""
   },
   "dependencies": {
     "gtnh-data": "*",

@@ -3,7 +3,7 @@
 **A mineflayer fork that actually works on GT: New Horizons (Minecraft 1.7.10 + Forge).**
 
 [![test](https://github.com/CnLiser/mineflayer-GTNH/actions/workflows/test.yml/badge.svg)](https://github.com/CnLiser/mineflayer-GTNH/actions/workflows/test.yml)
-[![tests](https://img.shields.io/badge/tests-291%20passing-brightgreen)](#测试)
+[![tests](https://img.shields.io/badge/tests-294%20passing-brightgreen)](#测试)
 [![node](https://img.shields.io/badge/node-%E2%89%A522-informational)](https://nodejs.org)
 [![MC](https://img.shields.io/badge/minecraft-1.7.10-blue)](#)
 [![GTNH](https://img.shields.io/badge/GTNH-2.9.0-orange)](#)
@@ -35,7 +35,7 @@
 git clone https://github.com/CnLiser/mineflayer-GTNH.git
 cd mineflayer-GTNH
 npm install
-npm test                              # 291 个测试，4 个 workspace 全绿
+npm test                              # 294 个测试，4 个 workspace 全绿
 ```
 
 需要一个 **GTNH 2.9.0 服务端**（`online-mode=false` 最省事）：
@@ -49,6 +49,9 @@ npm --workspace mineflayer-fork run recipes-smoke
 
 # 3) 联机冒烟：登录 → 走路 → 挖掘 → 背包
 npm --workspace mineflayer-fork run fork-smoke
+
+# 3b) 端到端演示：自己搭场地、从空背包开始挖，挖够自动交任务
+npm --workspace mineflayer-fork run quest-demo
 
 # 4) 机器冒烟：--auto 会自己铺地面、放机器、打开 GUI，不依赖玩家手搭的场景
 node packages/mineflayer-fork/tools/mui-smoke.js 127.0.0.1 54615 --auto

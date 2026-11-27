@@ -9,7 +9,7 @@
 ## 0. 一句话现状
 
 能连 **GTNH 2.9.0（MC 1.7.10）** 的 mineflayer fork：连服 → 区块/世界 → 物理 → 挖/放/攻击/用物品/吃/丢弃 → 箱子/工作台/熔炉/GT 机器 GUI → 合成/熔炉 → 配方数据（矿辞 + 原版 + GT 175689 + 17 mod 8906 + TiC 静态表 + 实体 148）→ **GT 压模机全链路**（放机器 → 太阳能供电 → 投料 → 电压校验 → 取件）。
-**291 个测试全过**，13 个冒烟脚本（12 联机 + 1 离线）。
+**294 个测试全过**，14 个冒烟脚本（13 联机 + 1 离线）。
 
 ## 1. 十分钟自检（照抄）
 
@@ -26,6 +26,7 @@ npm --workspace mineflayer-fork run recipes-smoke
 
 # 联机冒烟（需要服务端 + 游戏内没人在同一位置）
 npm --workspace mineflayer-fork run fork-smoke
+npm --workspace mineflayer-fork run quest-demo      # M5 端到端：挖 → 交任务
 
 # 机器冒烟（会自己搭场景：tp 拉区块 → 铺石头地面 → 放置机器 → 打开 GUI）
 node packages/mineflayer-fork/tools/mui-smoke.js 127.0.0.1 54615 --auto
@@ -63,7 +64,7 @@ packages/
 ├── mineflayer-fork/       # **主力**：vendored mineflayer 4.39 + lib/gtnh/* 补丁
 │   ├── lib/loader.js      # 建连、注册表注入、各 attach* 挂载点
 │   ├── lib/gtnh/{world,physics,physics-tick,blockshape,entities,items,actions,modularui,recipes,tconstruct,smeltery,gtmachine,chat,mods,reconnect,pathfinder,mining,harvest}.js
-│   └── tools/*.js         # 13 个冒烟脚本（12 联机 + recipes-smoke 离线）
+│   └── tools/*.js         # 14 个冒烟脚本（13 联机 + recipes-smoke 离线）
 ```
 
 ```

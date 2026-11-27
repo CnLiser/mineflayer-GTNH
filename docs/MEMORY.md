@@ -218,8 +218,8 @@ gtnhFlag  : u8                  // 恒等于 count（x1→01, x2→02, x64→40�
 | 动作层（挖掘 / 攻击 / 使用 / 合成 / 熔炉 / 丢弃 / 吃） | ✅ |
 | M4.5 vendored fork | 🚧 登录→生成→世界→物理→挖掘→背包→窗口→机器 GUI→动作层全通（生存挖掘/攻击/用物品已验） |
 
-**测试：全仓 291 个**（gtnh-data 87 / prismarine-chunk-1.7 7 / protocol-fml 52 /
-mineflayer-fork 145），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
+**测试：全仓 294 个**（gtnh-data 87 / prismarine-chunk-1.7 7 / protocol-fml 52 /
+mineflayer-fork 148），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
 能力等价地搬进了 fork（physics-tick 13 / blockshape 6 / chat 6 / support-feature 3 / inventory 5 / window 6 / entities 3 / reconnect 3 / pathfinder 12 / mining 5 / harvest 10 / digtime 5 / quests 6）。
 
 ## 6. 冒烟工具
@@ -236,6 +236,7 @@ npm --workspace mineflayer-fork run fork-smoke            # 走路/挖掘/背包
 npm --workspace mineflayer-fork run machine-smoke         # GT 机器 GUI（41 槽）
 npm --workspace mineflayer-fork run machine-item-smoke    # 机器槽物品取出/放入
 npm --workspace mineflayer-fork run mui-smoke             # 机器状态（控件流）
+npm --workspace mineflayer-fork run quest-demo            # M5 端到端：自己搭场地，挖够自动交任务
 npm --workspace mineflayer-fork run action-smoke          # 生存挖掘 / 攻击 / 使用物品
 npm --workspace mineflayer-fork run extruder-smoke        # GT 压模机：放电+太阳能+投料+电压校验+取件
 npm --workspace mineflayer-fork run craft-smoke           # 工作台合成
@@ -301,6 +302,10 @@ npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数�
    途中发现熔炉窗口不能用上游的 `putFuel/putInput/takeOutput`（`window.findItemRange` 在 GTNH 的
    4 字节 id 下匹配不到物品，报 `Can't find iron_ore in slots [3 - 39]`），改成自己 `clickWindow`；
    ④ 计划里偶尔会多备料（按轮重算会重复挖）；
+   ⑥ 端到端 demo 通了（2026-11-27）：`tools/quest-demo.js` 自己 tp 拉区块、铺场地、`clear` 背包、
+   切生存，`runQuest` 一轮挖满 13 个 dirt（要 11），自动提交后服务端确认完成；
+   坑一：`createBot` 之前 tp 无效，setblock 会回 `Cannot place block outside of the world`（区块没加载）；
+   坑二：`bot.once('error')` 会被 GTNH 的未注册包 `Read error for undefined` 打挂，要过滤；
    ⑤ 交任务（2026-11-27）：**BQ 自己的通道已经实现**（`protocol-fml/src/gtnh/bqnet.js`：分片 NBT
    + 双层 gzip + 3 字节头），`bot.submitQuest` 默认走玩家路径，服务端会验前置与物品；实机三种情况
    （前置没做 → 被拒、全新玩家 + 11 dirt → 成功、已交过 → 忽略但 ok）都验过。`via:'rcon'` 才走

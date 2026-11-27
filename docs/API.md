@@ -353,6 +353,25 @@ await bot.smeltItem('minecraft:iron_ingot', 2)       // 自己找原料和燃料
 好几种原料（铁锭能烧原版铁矿，也能烧好几个 mod 的矿），按背包里真有的那个挑。
 燃料顺序：煤 → 木炭 → 木板 → 原木 → 木棍。
 
+端到端跑一遍（自己搭场地、从空背包开始、挖完自动交）：
+
+```bash
+npm --workspace mineflayer-fork run quest-demo                      # 默认 Your First Night
+node packages/mineflayer-fork/tools/quest-demo.js 127.0.0.1 54615 bot2 "Your First Night" --at 70 80 70
+```
+
+它会把计划里 `kind:'mine'` 的方块按数量摆进场地（多摆两个当容错），`clear` 背包、切生存，
+然后交给 `runQuest`，最后打印每轮做了什么和服务端是否确认。实机输出：
+
+```
+任务：Your First Night（00000000-0000-0000-0000-000000000000）
+计划： mine minecraft:dirt x11
+摆好 minecraft:dirt x13
+背包（开始前）： 空
+  第 1 轮  mine minecraft:dirt x11  ok（挖到 13）
+✓ 任务已提交，服务端确认完成
+```
+
 ⚠️ 熔炉窗口不要用上游的 `furnace.putFuel` / `putInput` / `takeOutput`——它们走
 `window.findItemRange`，GTNH 的 4 字节 id 下匹配不到玩家背包里的物品（实测报
 `Can't find iron_ore in slots [3 - 39]`）。`smelt` 内部是自己 `clickWindow` 点的。
