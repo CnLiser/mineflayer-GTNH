@@ -218,8 +218,8 @@ gtnhFlag  : u8                  // 恒等于 count（x1→01, x2→02, x64→40�
 | 动作层（挖掘 / 攻击 / 使用 / 合成 / 熔炉 / 丢弃 / 吃） | ✅ |
 | M4.5 vendored fork | 🚧 登录→生成→世界→物理→挖掘→背包→窗口→机器 GUI→动作层全通（生存挖掘/攻击/用物品已验） |
 
-**测试：全仓 294 个**（gtnh-data 87 / prismarine-chunk-1.7 7 / protocol-fml 52 /
-mineflayer-fork 148），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
+**测试：全仓 301 个**（gtnh-data 87 / prismarine-chunk-1.7 7 / protocol-fml 56 /
+mineflayer-fork 151），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
 能力等价地搬进了 fork（physics-tick 13 / blockshape 6 / chat 6 / support-feature 3 / inventory 5 / window 6 / entities 3 / reconnect 3 / pathfinder 12 / mining 5 / harvest 10 / digtime 5 / quests 6 / modularui 3）。
 
 ## 6. 冒烟工具
@@ -312,12 +312,14 @@ npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数�
    `bq_admin complete`（UUID 是 `UuidConverter` 的 16 字节 URL-safe base64 去 padding，FINDINGS §39/§39.5）。
    怪现象：`bq_admin reset` 之后同一玩家的 BQ claim 会失败，换新玩家立刻成功。
 
-9. **MUI2 写路径**（2026-11-27 起，**实验性、实机未通**）：`lib/gtnh/modularui.js` 的
-   `bot.muiSet / muiToggle / muiClick / muiClose`，编码在 `protocol-fml/src/gtnh/modularui.js`
-   （C2S 的 id = S2C + 1，syncHandler 是 12，与抓包逐字节一致）。
-   **卡在**：包能到服务端（不存在的 discriminator 会被踢），但任何 networkId 都被静默丢弃——
-   服务端 `activeScreens` 里没有能命中的 session（FINDINGS §40）。下一步用真实客户端抓一次
-   C→S 包对比，或先试 `syncConfig`(id 2)。这一条通了才能解锁 8-② 的机器配方。
+9. **MUI2 写路径**（2026-11-27，**已通**）：`lib/gtnh/modularui.js` 的
+   `bot.muiSet / muiToggle / muiClick`，编码在 `protocol-fml/src/gtnh/modularui.js`。
+   **核心坑**：C2S 的 discriminator 与 S2C **相同**（`syncHandler` = 11），不是 +1；
+   写成 12 会得到 `Undefined message for discriminator 12 in channel modularui2`，
+   而 FML 只打日志不断连，所以看起来「发了没反应」（FINDINGS §40）。
+   验法只有一种：改完关掉 GUI 再打开——服务端不会把改过的值推回来。
+   `muiClose`（closeGui 7）不关窗口，关窗口用 `bot.closeWindow`。
+   这一条通了之后，8-② 的「机器配方 blocked」就可以往下做了。
 
 ## 8. 记忆里容易忘的小事
 

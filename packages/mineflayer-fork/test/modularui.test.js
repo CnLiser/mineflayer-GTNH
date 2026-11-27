@@ -67,7 +67,7 @@ test('muiSet 发 custom_payload，通道是 modularui2，头是 syncHandler', as
     const sent = client.writes.slice(before).filter(w => w.name === 'custom_payload')
     assert.strictEqual(sent.length, 1)
     assert.strictEqual(sent[0].params.channel, 'modularui2')
-    assert.strictEqual(sent[0].params.data[0], 12)  // syncHandler 的 C2S id
+    assert.strictEqual(sent[0].params.data[0], 11)  // syncHandler 的 C2S id（与 S2C 相同）
     assert.strictEqual(sent[0].params.data[1], 0)   // networkId
     assert.strictEqual(sent[0].params.data[sent[0].params.data.length - 1], 0) // false
   } finally {

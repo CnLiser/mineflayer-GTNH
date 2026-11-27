@@ -2553,76 +2553,68 @@ payload NBT 第一个字段是 handler 的 ResourceLocation：
 （`has not completed`），换一个全新玩家又立刻成功。怀疑 reset 只清了服务端进度、没触发
 `main_sync` 重推，客户端的可见任务状态对不上。正常玩不会 reset，先记着。
 
-## 四十、2026-11-27：MUI2 的 C→S 写路径——包能到服务端，但它不认我们的 session（未通）
+## 四十、2026-11-27：MUI2 的 C→S 写路径（已通）
 
 目标：让 bot 能改机器 GUI 里的值（`powerSwitch`、电压、模式），从而解锁 `runQuest` 里
-blocked 的「机器配方」那一大类。**结论：编码层做完并验证了，但实机上服务端不执行任何写操作，
-这一条还没通。**
+blocked 的「机器配方」那一大类。**结论：通了，关键是 C2S 的 discriminator 与 S2C 是同一个数，
+不是 +1。**
 
-### 40.1 线格式（可用的部分）
+### 40.1 线格式
 
-MUI2 的通道名是 `modularui2`，SimpleImpl 的 discriminator 是包首字节。`NetworkHandler.registerBoth`
-的字节码是「先 `registerS2C` 再 `registerC2S`，packetId 从 0 开始取当前值再 +1」，所以
-C2S 的 id 正好是 S2C + 1：
+MUI2 的通道名是 `modularui2`，SimpleImpl 的 discriminator 是包首字节。两侧的 id 是同一套：
 
-| 包 | S→C | C→S |
-| --- | --- | --- |
-| `syncConfig` | 1 | 2 |
-| `openGui` | 3 | 4 |
-| `reopenGui` | 5 | 6 |
-| `closeGui` | 7 | 8 |
-| `closeAllGui` | 9 | 10 |
-| `syncHandler` | 11 | **12** |
-| `widgetAction` | — | 12（action=true 的变形） |
+| 包 | id |
+| --- | --- |
+| `syncConfig` | 1 |
+| `openGui` | 3 |
+| `reopenGui` | 5 |
+| `closeGui` | 7 |
+| `closeAllGui` | 9 |
+| `syncHandler` | **11** |
 
 `syncHandler` 的 C→S 包和 S→C 是**同一套布局**：
 
 ```
-[varint packetId=12][varint networkId][string panel][string key][bool action]
+[varint 11][varint networkId][string panel][string key][bool action]
 [varint payloadLen][payload]           payload = [varint tag=0][值]
 ```
 
-把 `encodeSyncHandler` 编出来的包首字节改成 11，与抓到的真实 S→C 包逐字节相同
-（测试里就锁了这一条，见 `packages/protocol-fml/test/modularui.test.js`）：
+`encodeSyncHandler` 编出来的字节与抓到的真实 S→C 包**完全一致**（测试里就是这么断言的）：
 
 ```
 0b 00 21 "basicmachine.alloysmelter.tier.02" 0d "powerSwitch:0" 00 02 00 01
 ```
 
-### 40.2 实机矩阵
+### 40.2 怎么发现「+1 是错的」
 
-| 发包 | 结果 |
-| --- | --- |
-| discriminator 99 / 98（不存在） | **bot 被踢**：`A fatal error has occured, this connection is terminated` |
-| `closeGui` id 8/9/10/11/12/13 × networkId 0/1 | 窗口不关、不被踢、无日志 |
-| `syncHandler` id 12，`powerSwitch:0=false`，networkId 0..5 | 值一直是 true，不被踢 |
-| 原版 `close_window` 同一个窗口 | 立刻生效（`windowClose 1`） |
-| BQ 通道的 C→S（`bqnet`） | 之前实机成功过 |
+一开始按 `registerBoth`「先注册 S2C 再注册 C2S、id 自增」推出 C2S = S2C + 1，发 12 没反应。
+真正定死问题的是**服务端日志**：
 
-「不存在的 id 会被踢」这条很关键：它证明包确实到了服务端、进了 FML 的 dispatch；
-而 8–13 都不断连，说明这些 id 都是有 handler 的。
-
-### 40.3 卡在哪
-
-`ModularNetworkSide.receivePacket(player, packet)` 是：
-
-```java
-ModularSyncManager manager = activeScreens.get(packet.networkId);
-if (manager == null) return;                 // 静默，没有日志
-manager.receiveWidgetUpdate(panel, key, action, action ? 0 : packet.readVarInt(), packet);
+```
+io.netty.handler.codec.DecoderException: java.lang.NullPointerException:
+  Undefined message for discriminator 12 in channel modularui2
 ```
 
-所有 networkId 都无反应 ⇒ `activeScreens` 里没有能命中的 session。服务端 `activate` 的实现是
-`nextId = nextId + 1; if (nextId > 100000) nextId = 0; activateInternal(nextId, m); return nextId`，
-而我们抓到的 `openGui` 里 `networkId = 0`。
+12 和 13 都是未定义，而 0–11 全部有定义。也就是说 C2S 用的是**同一套 id**，
+`registerBoth` 是把同一个 discriminator 在两侧各注册一份，不是往后排。
 
-还没试过的方向（下次接着做）：
+> 这个错误之所以藏了很久：FML 对未定义的 discriminator **只打日志、不断连**，
+> 客户端看起来一切正常，只是「发了没反应」。
 
-1. 用真实客户端开一次机器 GUI、点一下开关，通过 TCP 代理抓 C→S 包，直接看它的 `networkId`
-   和 packetId 到底是多少（最可靠，一次就能定死）；
-2. 试 `syncConfig`（id 2）：也许服务端要先收到它才把 session 挂进 `activeScreens`；
-3. 检查 `ModularNetwork.SERVER` 的 `get(player)` 是不是按 UUID 分了实例——我们的连接是
-   「新玩家每次」，理论上不冲突，但值得确认。
+### 40.3 实机验证
+
+```
+1 打开       powerSwitch = false
+  muiSet(false) -> true
+2 重开       powerSwitch = false        （本来就 false，看不出变化）
+  muiToggle  -> true
+3 重开       powerSwitch = true         ← 服务端真的被改了
+```
+
+「改完关掉 GUI 再打开」是唯一的验法：服务端不会把新值推回来，同窗口里读到的还是旧缓存。
+
+`muiClose`（`closeGui` id 7）发了不报错但窗口不关，服务端似乎要求 containerId 对得上；
+关窗口还是用原版的 `bot.closeWindow(bot.currentWindow)`。
 
 ### 40.4 代码在哪
 

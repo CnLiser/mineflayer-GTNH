@@ -114,16 +114,16 @@ const {
   C2S_IDS
 } = require('../src/gtnh/modularui')
 
-test('C2S id 是 S2C id + 1', () => {
-  assert.strictEqual(C2S_IDS.syncConfig, 2)
-  assert.strictEqual(C2S_IDS.openGui, 4)
-  assert.strictEqual(C2S_IDS.reopenGui, 6)
-  assert.strictEqual(C2S_IDS.closeGui, 8)
-  assert.strictEqual(C2S_IDS.closeAllGui, 10)
-  assert.strictEqual(C2S_IDS.syncHandler, 12)
+test('C2S 的 id 与 S2C 相同（registerBoth 用同一个 discriminator 注册两侧）', () => {
+  assert.strictEqual(C2S_IDS.syncConfig, 1)
+  assert.strictEqual(C2S_IDS.openGui, 3)
+  assert.strictEqual(C2S_IDS.reopenGui, 5)
+  assert.strictEqual(C2S_IDS.closeGui, 7)
+  assert.strictEqual(C2S_IDS.closeAllGui, 9)
+  assert.strictEqual(C2S_IDS.syncHandler, 11)
 })
 
-test('encodeSyncHandler 与抓到的 S→C 同款包逐字节一致（除 id）', () => {
+test('encodeSyncHandler 与抓到的 S→C 同款包逐字节一致', () => {
   const out = encodeSyncHandler({
     networkId: 0,
     panel: 'basicmachine.alloysmelter.tier.02',
@@ -131,10 +131,7 @@ test('encodeSyncHandler 与抓到的 S→C 同款包逐字节一致（除 id）'
     value: true,
     type: 'bool'
   })
-  // 把 id 从 12 改成 11 就是真实抓包的 SYNC_POWER
-  const asServer = Buffer.from(out)
-  asServer[0] = 11
-  assert.strictEqual(asServer.toString('hex'), SYNC_POWER)
+  assert.strictEqual(out.toString('hex'), SYNC_POWER)
 })
 
 test('encodeSyncHandler 编出来的包能被 parsePacket 读回去', () => {

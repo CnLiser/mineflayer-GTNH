@@ -376,7 +376,7 @@ node packages/mineflayer-fork/tools/quest-demo.js 127.0.0.1 54615 bot2 "Your Fir
 `window.findItemRange`，GTNH 的 4 字节 id 下匹配不到玩家背包里的物品（实测报
 `Can't find iron_ore in slots [3 - 39]`）。`smelt` 内部是自己 `clickWindow` 点的。
 
-### 6.6 机器 GUI 的值（MUI2 写路径，实验性）
+### 6.6 机器 GUI 的值（MUI2 写路径）
 
 ```js
 const panel = bot.modularPanels()[0]        // 'basicmachine.alloysmelter.tier.02'
@@ -385,15 +385,22 @@ bot.panelState(panel)                       // { 'powerSwitch:0': {kind:'bool',v
 bot.muiSet(panel, 'powerSwitch', false)     // 改一个值（类型从已解码的 kind 推断，可 opts.type 指定）
 bot.muiToggle(panel, 'powerSwitch')         // 布尔取反
 bot.muiClick(panel, 'someButton:0', payload) // 点 widget（action=true）
-bot.muiClose()                              // 关掉当前 MUI2 窗口
 ```
 
-没有打开的 MUI2 窗口时都返回 `false`、不发包。编码层在
-`protocol-fml/src/gtnh/modularui.js`（`encodeSyncHandler` 等），C2S 的 id 是 S2C + 1。
+没有打开的 MUI2 窗口时都返回 `false`、不发包。改完要**关掉 GUI 再打开**才能读到新值
+（服务端不会把改过的值推回来）：
 
-⚠️ **实机还没通**：包能到服务端（发不存在的 discriminator 会被踢，说明进了 dispatch），
-但所有 `networkId` 组合都被服务端静默丢弃——`activeScreens` 里没有能命中的 session。
-细节与下一步在 FINDINGS §40。
+```js
+bot.muiToggle(panel, 'powerSwitch')
+bot.closeWindow(bot.currentWindow)
+// 重新 activateBlock → 新的 panelState 里 powerSwitch 就是服务端现在的值
+```
+
+编码层在 `protocol-fml/src/gtnh/modularui.js`（`encodeSyncHandler` 等）。**C2S 的 discriminator
+与 S2C 相同**（`syncHandler` 是 11），不是 +1——写成 +1 会得到
+`Undefined message for discriminator 12`，而 FML 只打日志不断连，很难发现（FINDINGS §40）。
+
+⚠️ `bot.muiClose()`（`closeGui`）发了不报错但窗口不关，关窗口请用 `bot.closeWindow`。
 
 ## 7. 聊天
 

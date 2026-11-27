@@ -249,13 +249,18 @@ function collectSync (messages) {
 // byteBuf(payload)，payload 是 [varint tag][值]。
 // tag=0 同时用于 SYNC_VALUE 与 ItemSlotSH 的 SYNC_ITEM，靠 handler 类型区分。
 
+// GTNH-PATCH: C2S 用的 discriminator 与 S2C **相同**（0..11），不是 S2C+1。
+// `NetworkHandler.registerBoth` 是「把同一个 id 在两侧各注册一份」；猜 +1 的结果是
+// 服务端回 `Undefined message for discriminator 12 in channel modularui2`（FML 只打日志、
+// 不断连，所以一开始没发现）。实机验证：发 id 11 的 syncHandler 改 powerSwitch，
+// 关掉 GUI 再打开，值真的变了。
 const C2S_IDS = {
-  syncConfig: 2,
-  openGui: 4,
-  reopenGui: 6,
-  closeGui: 8,
-  closeAllGui: 10,
-  syncHandler: 12
+  syncConfig: 1,
+  openGui: 3,
+  reopenGui: 5,
+  closeGui: 7,
+  closeAllGui: 9,
+  syncHandler: 11
 }
 
 // 把 JS 值编码成 SyncHandler.read() 期望的字节。type 决定用哪种 varint/double。
