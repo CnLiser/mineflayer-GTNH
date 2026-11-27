@@ -107,7 +107,7 @@ archive/
 | [`docs/HANDOVER.md`](docs/HANDOVER.md) | **冷启动 10 分钟**：自检命令 / 现场状态 / 代码地图 / 扩展路径 / agent 速查 / 陷阱 Top10 |
 | [`docs/MEMORY.md`](docs/MEMORY.md) | 工程快照：架构、补丁表、踩平的坑（现象→真因→修法）、里程碑、还差什么 |
 | [`docs/FINDINGS.md`](docs/FINDINGS.md) | **34 节实证记录**：每个协议格式的字节级论证、对照实验、死路 |
-| [`docs/memory/`](docs/memory/) | **22 张 mod 卡片**：每个 mod 的 id / 操作路径 / 线格式 / 已实现 API / 坑 |
+| [`docs/memory/`](docs/memory/) | **23 张卡片**（22 个 mod + 1 张「单方块机器从零到出产物」）：每个 mod 的 id / 操作路径 / 线格式 / 已实现 API / 坑 |
 | [`docs/API.md`](docs/API.md) | `bot.*` 扩展 API 速查（GTNH 加的那些方法） |
 | [`PLAN.md`](PLAN.md) | 路线：分层 T0–T4、里程碑 M0–M5、风险 |
 

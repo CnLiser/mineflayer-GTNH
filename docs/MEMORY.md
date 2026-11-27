@@ -1,4 +1,4 @@
-> mod 记忆在本仓库 `docs/memory/`（22 张卡片，与代码一起提交）；场景记忆目录
+> mod 记忆在本仓库 `docs/memory/`（23 张卡片，与代码一起提交）；场景记忆目录
 > `G:/deepseek/workbench/引擎数据/.dsh/场景记忆/我的世界/项目记忆/mineflayer-GTNH.md` 是 DSH 环境里的活副本。本文是工程快照镜像。
 > **冷启动先读**：`docs/HANDOVER.md`（自检命令 / 现场状态 / 代码地图 / 扩展路径 / agent 速查 / 陷阱 Top10）。
 
@@ -6,7 +6,7 @@
 
 > 这份文件是给「下一次接手的人 / 我自己重开上下文」看的现状快照：目标、环境、
 > 架构、已经踩平的坑、还差什么。细节论证在 `docs/FINDINGS.md`，路线在 `PLAN.md`。
-> 最后更新：2026-11-26。按 mod 拆成记忆网：每个 mod 一张卡片在 `docs/memory/`，本文是枢纽（索引 + 关联图 + 协议地基）。
+> 最后更新：2026-11-27。按 mod 拆成记忆网：每个 mod 一张卡片在 `docs/memory/`，本文是枢纽（索引 + 关联图 + 协议地基）。
 
 ---
 
@@ -42,6 +42,7 @@
 | Et Futurum | [etfuturum](memory/etfuturum.md) | 锻造台 9 条（copyNBT） | → gregtech |
 | GalaxySpace | [galaxyspace](memory/galaxyspace.md) | 火箭 32 条（T1..T8，19–53 格散列） | → galacticraft |
 | Binnie | [binnie](memory/binnie.md) | 培养器 160 / 蜜蜂突变 153 / 花突变 37 | → forestry |
+| 机器入门 | [gt-machine-basics](memory/gt-machine-basics.md) | **单方块机器从零到出产物**：槽位、通电、九宫格、放料 | → gregtech、modularui2 |
 
 ### 关联图（谁依赖谁）
 

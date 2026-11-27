@@ -1,7 +1,7 @@
 # 接手手册（冷启动 10 分钟）
 
 > 给「刚开的新会话」看：先读这一页，再按需读 `docs/MEMORY.md`（工程快照）、`docs/FINDINGS.md`（34 节实证）、`docs/API.md`（`bot.*` 速查）、`PLAN.md`（路线）。
-> mod 记忆在仓库内 `docs/memory/`（22 张卡片，跟代码一起提交）；同一份内容的活副本在场景记忆目录
+> mod 记忆在仓库内 `docs/memory/`（23 张卡片，跟代码一起提交）；同一份内容的活副本在场景记忆目录
 > `G:/deepseek/workbench/引擎数据/.dsh/场景记忆/我的世界/项目记忆/mineflayer-GTNH.md`（只有 DSH 环境能读）。
 
 ---
