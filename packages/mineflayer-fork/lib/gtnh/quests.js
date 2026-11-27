@@ -152,9 +152,10 @@ function recipeFor (bot, item) {
     }
   } catch {}
   try {
-    if (typeof bot.gtnhSmeltingFor === 'function') {
-      const sm = bot.gtnhSmeltingFor(nid, item.meta || 0)
-      if (sm) return { kind: 'smelt', inputs: [{ id: itemNameOf(bot, sm.id), meta: sm.metadata, count: 1 }] }
+    // 熔炉要反查：gtnhSmeltingFor 是「原料→产物」，这里要知道「产物从什么来」
+    if (typeof bot.gtnhSmeltSource === 'function') {
+      const sm = bot.gtnhSmeltSource(nid, item.meta || 0)
+      if (sm) return { kind: 'smelt', inputs: [{ id: itemNameOf(bot, sm.in[0]), meta: sm.in[1], count: 1 }] }
     }
   } catch {}
   return null

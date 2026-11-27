@@ -47,6 +47,8 @@ function attachRecipes (bot) {
   bot.gtnhRecipesFor = (id, metadata) => book.craftingFor(id, metadata).map(toMineflayerRecipe)
   /** 熔炉产物 */
   bot.gtnhSmeltingFor = (id, metadata) => book.smeltFor(id, metadata)
+  bot.gtnhSmeltSource = (id, metadata) => book.smeltFrom(id, metadata)
+  bot.gtnhSmeltSources = (id, metadata) => book.smeltFromAll(id, metadata)
   // GT 机器/工具配方（RecipeMap，~175k 条）：第一次访问才解析，约 0.5 秒
   let gt = null
   const gtBook = () => (gt || (gt = loadGtRecipes()))

@@ -331,6 +331,21 @@ const r = await bot.runQuest('Soft Mallet Adventure', { rounds: 6, radius: 24 })
 到 `ready: true`（`missing` 为空）就算做完了——交任务本身还得玩家/脚本去点任务书，
 这部分没做。
 
+单独烧一炉：
+
+```js
+await bot.smeltItem('minecraft:iron_ingot', 2)       // 自己找原料和燃料
+// => { ok: true, smelted: 1 }  或  { ok: false, reason: '熔料不够：要 2 个 iron_ore / ...' }
+```
+
+原料是**反查**的（`gtnhSmeltSource` / `gtnhSmeltSources`，产物 → 原料），一个产物常有
+好几种原料（铁锭能烧原版铁矿，也能烧好几个 mod 的矿），按背包里真有的那个挑。
+燃料顺序：煤 → 木炭 → 木板 → 原木 → 木棍。
+
+⚠️ 熔炉窗口不要用上游的 `furnace.putFuel` / `putInput` / `takeOutput`——它们走
+`window.findItemRange`，GTNH 的 4 字节 id 下匹配不到玩家背包里的物品（实测报
+`Can't find iron_ore in slots [3 - 39]`）。`smelt` 内部是自己 `clickWindow` 点的。
+
 ## 7. 聊天
 
 ```js

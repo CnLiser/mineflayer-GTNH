@@ -4,7 +4,7 @@ const test = require('node:test')
 const assert = require('node:assert')
 const { createOfflineBot } = require('./helpers/offline-bot')
 const { stripColor } = require('../lib/gtnh/quests')
-const { blockForItem } = require('../lib/gtnh/questrun')
+const { blockForItem, countOf } = require('../lib/gtnh/questrun')
 
 test('任务脚本：挖就够的任务，计划里只有挖', async () => {
   const { bot } = await createOfflineBot({ username: 'qr1' })
@@ -62,4 +62,12 @@ test('任务脚本：物品能反查方块（coal → coal_ore）', async () => 
 test('任务脚本：stripColor 去掉颜色码', () => {
   assert.strictEqual(stripColor('§c§lMore Steam, More Pressure!'), 'More Steam, More Pressure!')
   assert.strictEqual(stripColor('plain'), 'plain')
+})
+
+test('countOf 支持通配 metadata（32767）', async () => {
+  const { bot } = await createOfflineBot()
+  bot.inventory.slots[36] = { name: 'iron_ore', metadata: 0, count: 4, type: 15, slot: 36 }
+  assert.equal(countOf(bot, 'iron_ore', 0), 4)
+  assert.equal(countOf(bot, 'iron_ore', 32767), 4)
+  assert.equal(countOf(bot, 'iron_ore', 3), 0)
 })

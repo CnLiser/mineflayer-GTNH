@@ -97,6 +97,30 @@ class RecipeBook {
     return null
   }
 
+  /**
+   * 熔炉反查：产物 -> 所有可能的原料（熔炉是 1 进 1 出，但一个产物常有好几种原料，
+   * 比如铁锭能烧原版铁矿、也能烧好几个 mod 的矿）。原版 `minecraft:` 的排前面。
+   */
+  smeltFromAll (outId, metadata) {
+    if (!this._smeltFrom) {
+      this._smeltFrom = new Map()
+      for (const [k, v] of Object.entries(this.smelting)) {
+        const [id, meta] = k.split(':').map(Number)
+        const key = `${v[0][0]}:${v[0][1]}`
+        if (!this._smeltFrom.has(key)) this._smeltFrom.set(key, [])
+        this._smeltFrom.get(key).push({ in: [id, meta], count: v[1] })
+      }
+      for (const list of this._smeltFrom.values()) {
+        list.sort((a, b) => (b.in[0] >= 0 && b.in[0] < 400 ? 1 : 0) - (a.in[0] >= 0 && a.in[0] < 400 ? 1 : 0))
+      }
+    }
+    return this._smeltFrom.get(`${outId}:${metadata}`) || this._smeltFrom.get(`${outId}:${WILDCARD}`) || []
+  }
+
+  smeltFrom (outId, metadata) {
+    return this.smeltFromAll(outId, metadata)[0] || null
+  }
+
   /** 配方原料是否接受该物品；原料为空位（null）永远不接受 */
   ingredientAccepts (ingredient, blockId, metadata) {
     if (!ingredient) return false

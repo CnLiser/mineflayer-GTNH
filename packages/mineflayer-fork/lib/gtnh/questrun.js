@@ -22,6 +22,17 @@ const MAX_STEPS = 200
 function attachQuestRun (bot) {
   bot.questSteps = (id, opts) => planQuest(bot, id, opts)
   bot.runQuest = (id, opts) => runQuest(bot, id, opts)
+  // 公开的「烧一炉」：任务里很少直接触发（GT 配方会先命中 gt:），但原版可熔炼的
+  // 物品（玻璃、铁锭、烤马铃薯）单独用得上，也方便测。
+  bot.smeltItem = async (name, count, opts) => {
+    const nid = idOf(bot, name)
+    const meta = (opts && opts.meta) || 0
+    const sm = typeof bot.gtnhSmeltSource === 'function' ? bot.gtnhSmeltSource(nid, meta) : null
+    if (!sm) return { ok: false, reason: `没有 ${name} 的熔炉配方` }
+    const srcName = bot.registry.items[sm.in[0]] ? bot.registry.items[sm.in[0]].name : sm.in[0]
+    const step = { kind: 'smelt', item: name, meta, count: count || 1, inputs: [{ id: srcName, meta: sm.in[1] || 0, count: 1 }] }
+    return smelt(bot, step, opts || {})
+  }
 }
 
 /** crafting 类任务：产物就是目标（背包判断不出来合成过没有） */
@@ -239,7 +250,8 @@ function countOf (bot, id, meta) {
   const want = shortName(id)
   let n = 0
   for (const it of bot.inventory ? bot.inventory.items() : []) {
-    if (shortName(it.name || it.id) === want && (it.metadata || 0) === (meta || 0)) n += it.count
+    const m = meta | 0
+    if (shortName(it.name || it.id) === want && (m === 32767 || (it.metadata || 0) === m)) n += it.count
   }
   return n
 }
@@ -263,12 +275,80 @@ async function craft (bot, step, o) {
   return { ok: true, crafted: step.count }
 }
 
+const FUELS = ['coal', 'charcoal', 'planks', 'log', 'stick']
+
 async function smelt (bot, step, o) {
   if (typeof bot.openFurnace !== 'function') return { ok: false, reason: '这个 fork 没有 openFurnace' }
-  const furnace = bot.registry.blocksByName['furnace']
-  const b = furnace ? bot.findBlock({ matching: furnace.id, maxDistance: 16 }) : null
+  const def = bot.registry.blocksByName['furnace']
+  const b = def ? bot.findBlock({ matching: def.id, maxDistance: 16 }) : null
   if (!b) return { ok: false, reason: '16 格内没有熔炉' }
-  return { ok: false, reason: '熔炉还没实现（下一步）' }
+  const before = countOf(bot, step.item, step.meta)
+  const want = Math.max(1, step.count - before)
+  // 一个产物常有好几种原料（原版铁矿 + 好几个 mod 矿），挑背包里真有的那个
+  const options = []
+  const hinted = (step.inputs || [])[0]
+  if (hinted) options.push(hinted)
+  const nid = idOf(bot, step.item)
+  if (typeof bot.gtnhSmeltSources === 'function') {
+    for (const s of bot.gtnhSmeltSources(nid, step.meta || 0)) {
+      const name = bot.registry.items[s.in[0]] ? bot.registry.items[s.in[0]].name : s.in[0]
+      if (!options.some((x) => shortName(x.id) === shortName(name))) options.push({ id: name, meta: s.in[1] || 0, count: 1 })
+    }
+  }
+  const src = options.find((x) => countOf(bot, x.id, x.meta || 0) >= want) || null
+  if (!src) return { ok: false, reason: `熔料不够：要 ${want} 个 ${options.map((x) => shortName(x.id)).join(' / ') || '（没有配方）'}，背包都没有` }
+  let fuel = null
+  for (const name of FUELS) {
+    const n = countOf(bot, name, 0)
+    if (n > 0) { fuel = { name, n }; break }
+  }
+  if (!fuel) return { ok: false, reason: '没有燃料（煤/木炭/木板/原木/木棍都行）' }
+
+  const furnace = await bot.openFurnace(b)
+  try {
+    // 不用 putFuel/putInput：它们走 window.findItemRange，GTNH 的 4 字节 id 下匹配不到
+    // 玩家背包里的物品（实测 "Can't find iron_ore in slots [3 - 39]"），改成自己点。
+    const slotOf = (name, meta) => {
+      const wantName = shortName(name)
+      for (let i = 3; i < furnace.slots.length; i++) {
+        const s = furnace.slots[i]
+        if (s && shortName(s.name) === wantName && ((meta | 0) === 32767 || (s.metadata | 0) === (meta | 0))) return i
+      }
+      return -1
+    }
+    const putN = async (dest, from, n) => {
+      if (from < 0) return false
+      await bot.clickWindow(from, 0, 0) // 拿起一整叠
+      for (let k = 0; k < n; k++) await bot.clickWindow(dest, 1, 0) // 右键一次放一个
+      await bot.clickWindow(from, 0, 0) // 剩下的放回去
+      return true
+    }
+
+    const fuelSlot = slotOf(fuel.name, 0)
+    if (!await putN(1, fuelSlot, Math.min(fuel.n, 8))) return { ok: false, reason: `窗口里找不到燃料 ${fuel.name}` }
+    const srcSlot = slotOf(src.id, src.meta || 0)
+    if (!await putN(0, srcSlot, want)) return { ok: false, reason: `窗口里找不到熔料 ${shortName(src.id)}` }
+
+    // 一块煤烧 8 个，1.7.10 一个物品 10 秒；给足时间再取
+    const deadline = Date.now() + (o.smeltMs || Math.max(30000, want * 12000))
+    while (Date.now() < deadline) {
+      const out = furnace.outputItem()
+      if (out && out.count > 0) break
+      await new Promise((r) => setTimeout(r, 500))
+    }
+    // 取产物：光标拿起来再放进背包第一个空槽
+    if (furnace.outputItem()) {
+      await bot.clickWindow(2, 0, 0)
+      let free = -1
+      for (let i = 3; i < furnace.slots.length; i++) if (!furnace.slots[i]) { free = i; break }
+      if (free >= 0) await bot.clickWindow(free, 0, 0)
+    }
+  } finally {
+    if (typeof furnace.close === 'function') furnace.close()
+    else if (bot.currentWindow) bot.closeWindow(bot.currentWindow)
+  }
+  const after = countOf(bot, step.item, step.meta)
+  return after > before ? { ok: true, smelted: after - before } : { ok: false, reason: '熔完没拿到产物' }
 }
 
 module.exports = { attachQuestRun, planQuest, runQuest, blockForItem, countOf, stripColor }

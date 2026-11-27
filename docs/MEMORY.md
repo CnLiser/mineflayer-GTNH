@@ -218,8 +218,8 @@ gtnhFlag  : u8                  // 恒等于 count（x1→01, x2→02, x64→40�
 | 动作层（挖掘 / 攻击 / 使用 / 合成 / 熔炉 / 丢弃 / 吃） | ✅ |
 | M4.5 vendored fork | 🚧 登录→生成→世界→物理→挖掘→背包→窗口→机器 GUI→动作层全通（生存挖掘/攻击/用物品已验） |
 
-**测试：全仓 281 个**（gtnh-data 87 / prismarine-chunk-1.7 7 / protocol-fml 48 /
-mineflayer-fork 139），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
+**测试：全仓 282 个**（gtnh-data 87 / prismarine-chunk-1.7 7 / protocol-fml 48 /
+mineflayer-fork 140），`npm test` 一把过；旧包的 32 个测试随归档退出 workspace，
 能力等价地搬进了 fork（physics-tick 13 / blockshape 6 / chat 6 / support-feature 3 / inventory 5 / window 6 / entities 3 / reconnect 3 / pathfinder 12 / mining 5 / harvest 10 / digtime 5 / quests 6）。
 
 ## 6. 冒烟工具
@@ -297,7 +297,10 @@ npm --workspace mineflayer-fork run recipes-smoke         # 离线：配方数�
    把「任务书缺料 → 配方 → 挖矿」串成可执行步骤。规划顺序：工作台合成/熔炉优先 → 挖 → 机器配方进
    `blocked`（要开 GUI/放流体，这一层不做）。执行按轮重算，挖掘用背包净增判断。
    **还欠**：① 交任务本身没做（做到 `ready:true` 就停）；② 机器配方全部 blocked（要等 MUI2 能写）；
-   ③ 实机只验了 craft 与 mine 两条路径，smelt 还没跑过；④ 计划里偶尔会多备料（按轮重算会重复挖）。
+   ③ ~~smelt 还没跑过~~ 已验（2026-11-27）：`bot.smeltItem` 实机把 2 个 iron_ore 烧成 1 个 iron_ingot；
+   途中发现熔炉窗口不能用上游的 `putFuel/putInput/takeOutput`（`window.findItemRange` 在 GTNH 的
+   4 字节 id 下匹配不到物品，报 `Can't find iron_ore in slots [3 - 39]`），改成自己 `clickWindow`；
+   ④ 计划里偶尔会多备料（按轮重算会重复挖）。
 
 ## 8. 记忆里容易忘的小事
 
